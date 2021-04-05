@@ -17,16 +17,18 @@ To create a game for both local and networked play, a configuration menu will be
 
 |    | Human | AI | None |
 |--- | ----- | --- | ---- |
-| Left |X|-|-|
-| Right |X|-|-|
-| Top |-|-|X|
-| Bottom |-|X|-|
+| Player 1 (Left) |X|-|-|
+| Player 2 (Right) |X|-|-|
+| Player 3 (Top) |-|-|X|
+| Player 4 (Bottom) |-|X|-|
 
 We will impose the condition that at least 1 player must be human so that the game can terminate.
 
 A potential user interface for the configuration menu may look like the image below.
 
 ![menu-config-mockup](document_assets/local_game_ui_mockup.png)
+
+In both the configuration matrix and the user interface mockup, there are 3 active players: Player 1, Player 2, and Player 4. Player 3 will not participate and a wall will occupy Player 3's position on the board. Player 1 and Player 2 will be controlled by human players while Player 4 will be an automated player.
 
 How the board is configure will depend on the player designations made. If no player (human or AI) occupies a side, a wall is placed. Additionally if two human/AI players are adjacent to each other on the board, a "block" obstacle will be placed in the corner that both sides share to prevent player-player collisions. This block also prevents the ball from passing into both players' sides causing an indeterminate life deduction. 
 
