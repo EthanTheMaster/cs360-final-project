@@ -123,6 +123,10 @@ public class GameLoop extends AnimationTimer {
 
 Now, whenever we would like to render a `GameScene`, we simply instantiate an instance of some `GameScene`, create a `Canvas` from it using `generateRenderableComponent`, pass both objects into the `GameLoop`, and run the `start` method on the `AnimationTimer` which `GameLoop` inherits.
 
+The work up to this point is represented diagrammatically below.
+
+![Game Loop UML](document_assets/gameloop_uml_img.png)
+
 
 <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
