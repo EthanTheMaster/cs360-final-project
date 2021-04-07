@@ -11,7 +11,14 @@ We will be creating a game that takes inspiration from Pong. Our game will suppo
 
 So that the game has variety and is not completely predictable, the ball at the start of the game will start in the middle of the board. It will then be thrown in a random direction, and every time the ball collides with a player's paddle, the ball will reflect off the paddle's surface with a slight deviation from the true reflection in the sense that the angle of reflection will be slightly perturbed from the true angle of reflection. Additionally, players will have the option to choose between different maps which form different configurations of the board by adding various obstacles throughout the course. When the ball collides with these obstacles, it will reflect off the surface, and having multiple obstacles throughout the board will cause the ball to follow a somewhat chaotic trajectory. 
 
-The game will come in 2 forms: local play and networked play. In local play, players will play the game on the same computer using the same keyboard. The following keys will be used to control the players: `Q A`, `[ '`, `C V`, and `M ,`. The positions of these keys on a US QWERTY keyboard suggests what direction the paddles will move in. In networked play, players play on separate computers which communicate over a network such as the internet or university WIFI network. In networked mode, players will use the arrow keys to move their character in the obvious fashion. 
+The game will come in 2 forms: local play and networked play. In local play, players will play the game on the same computer using the same keyboard. The following keys will be used to control the players: `Q A`, `[ '`, `C V`, and `M ,`. The positions of these keys on a US QWERTY keyboard suggests what direction the paddles will move in. Please refer to the figure above or the table below to see what direction and player each movement key is associated with. In networked play, players play on separate computers which communicate over a network such as the internet or university WIFI network. In networked mode, players will use the arrow keys to move their character in the obvious fashion. 
+
+|| Up | Down | Left | Right
+|---|---|---|---|---|
+| Player 1 (Left) |`Q`|`A`|-|-|
+| Player 2 (Right) |`[`|`'`|-|-|
+| Player 3 (Top) |-|-|`C`|`V`|
+| Player 4 (Bottom) |-|-|`M`|`,`|
 
 To create a game for both local and networked play, a configuration menu will be presented. In this menu players have the option to choose what map they want to play on and how players should be designated. There are 4 players available and each player can either be a human player, an AI player, or neither. If a player is designated as a human player, that player will be controlled via the keyboard using the above scheme. If the player is designated as an AI player, the computer will take over the paddle and play the game in place of a human. Otherwise, players designated as neither human nor AI will have a wall as a placeholder. One could imagine for example a matrix encoding some player designation as such
 
@@ -30,7 +37,7 @@ A potential user interface for the configuration menu may look like the image be
 
 In both the configuration matrix and the user interface mockup, there are 3 active players: Player 1, Player 2, and Player 4. Player 3 will not participate and a wall will occupy Player 3's position on the board. Player 1 and Player 2 will be controlled by human players while Player 4 will be an automated player.
 
-How the board is configure will depend on the player designations made. If no player (human or AI) occupies a side, a wall is placed. Additionally if two human/AI players are adjacent to each other on the board, a "block" obstacle will be placed in the corner that both sides share to prevent player-player collisions. This block also prevents the ball from passing into both players' sides causing an indeterminate life deduction. 
+How the board is configured will depend on the player designations made. If no player (human or AI) occupies a side, a wall is placed. Additionally if two human/AI players are adjacent to each other on the board, a "block" obstacle will be placed in the corner that both sides share to prevent player-player collisions. This block also prevents the ball from passing into both players' sides causing an indeterminate life deduction. 
 
 The AI player will play in such a fashion that it can never lose. Depending on its position, the action policy is to move up [resp. right] whenever the ball is above [resp. right of] its paddle's center and move down [resp. left] otherwise. The purpose of the AI player is to act as a sort of "trainer" for human players, and the fact that the AI player is a paddle will cause the ball to have unpredictable behavior upon collision and reflection. 
 
