@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>TECHNICAL_DESIGN.md</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+
+<style>
+/* https://github.com/microsoft/vscode/blob/master/extensions/markdown-language-features/media/markdown.css */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+	font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+	font-size: var(--vscode-markdown-font-size, 14px);
+	padding: 0 26px;
+	line-height: var(--vscode-markdown-line-height, 22px);
+	word-wrap: break-word;
+}
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-light.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-dark.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+a {
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left-width: 5px;
+	border-left-style: solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 1em;
+	line-height: 1.357em;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+pre code {
+	color: var(--vscode-editor-foreground);
+	tab-size: 4;
+}
+
+/** Theming */
+
+.vscode-light pre {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+</style>
+
+<style>
+/**
+ * GitHub Gist Theme
+ * Author : Anthony Attard - https://github.com/AnthonyAttard
+ * Author : Louis Barranqueiro - https://github.com/LouisBarranqueiro
+ */
+
+.hljs {
+  display: block;
+  background: white;
+  padding: 0.5em;
+  color: #333333;
+  overflow-x: auto;
+}
+
+.hljs-comment,
+.hljs-meta {
+  color: #969896;
+}
+
+.hljs-variable,
+.hljs-template-variable,
+.hljs-strong,
+.hljs-emphasis,
+.hljs-quote {
+  color: #df5000;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-type {
+  color: #d73a49;
+}
+
+.hljs-literal,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-attribute {
+  color: #0086b3;
+}
+
+.hljs-section,
+.hljs-name {
+  color: #63a35c;
+}
+
+.hljs-tag {
+  color: #333333;
+}
+
+.hljs-title,
+.hljs-attr,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-selector-attr,
+.hljs-selector-pseudo {
+  color: #6f42c1;
+}
+
+.hljs-addition {
+  color: #55a532;
+  background-color: #eaffea;
+}
+
+.hljs-deletion {
+  color: #bd2c00;
+  background-color: #ffecec;
+}
+
+.hljs-link {
+  text-decoration: underline;
+}
+
+.hljs-number {
+  color: #005cc5;
+}
+
+.hljs-string {
+  color: #032f62;
+}
+
+</style>
+
+<style>
+/*
+ * Markdown PDF CSS
+ */
+
+ body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+	padding: 0 12px;
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+code {
+	font-size: 14px;
+	line-height: 19px;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #C9AE75; 
+	font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+<link rel="stylesheet" href="file:///home/ethanlam/Documents/CBUYear2/CS360%20%28OO%29/FinalProject/markdown-pdf-style.css" type="text/css">
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast')
+          ? 'dark'
+          : 'default'
+    });
+  </script>
+<ul>
+<li>Collaborators
+<ol>
+<li>Samantha Anderson</li>
+<li>Ethan Lam</li>
+<li>An Nguyen</li>
+</ol>
+</li>
+</ul>
+<h1 id="design">Design</h1>
+<h2 id="the-game-loop">The Game Loop</h2>
+<p>Because our game is an interactive program that updates in real time, we will need a sort of abstraction that handles updating the game in real time while also receiving user input. It achieve this goal we will introduce the idea of a <strong>game loop</strong>. At a high level a game loop will involve the following steps</p>
+<ol>
+<li>Respond to user input</li>
+<li>Update the game state</li>
+<li>Render the game state</li>
+<li>Go to step 1.</li>
+</ol>
+<p>where the &quot;game state&quot; is any sort of abstract representation of the game in the moment. The game state could for example involve the positions and velocities of the players and ball.</p>
+<p>When the game responds to user input, it could for example update the velocities of the players. During the update phase, the game could then move all the players and ball in the direction of their velocity or update them in accordance with physical laws. Finally, with the updated state, the game is rendered to the screen, and the process starts over. This overview forms the basis of an interactive video game.</p>
+<p>With the game loop covered at a high level, we will make an interface called <code>GameScene</code> that captures each stage of the game loop so that it can inevitably be driven by a sort of looping construction. In the <code>GameScene</code>, there will be methods that handle keyboard events as follow</p>
+<pre class="hljs"><code><div><span class="hljs-comment">/**
+ * The method called when it is detected that a key on the keyboard 
+ * has been depressed
+ * <span class="hljs-doctag">@param</span> e a description of the keystroke that occurred
+ */</span>
+<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">onKeyPressed</span><span class="hljs-params">(KeyEvent e)</span></span>;
+<span class="hljs-comment">/**
+ * The method called when it is detected that a key on the keyboard 
+ * has been released
+ * <span class="hljs-doctag">@param</span> e a description of the keystroke that occurred
+ */</span>
+<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">onKeyReleased</span><span class="hljs-params">(KeyEvent e)</span></span>;
+</div></code></pre>
+<p>The <code>KeyEvent</code> object is from <code>javafx.scene.input.KeyEvent</code>, and it is no coincidence that the method signatures matches that of JavaFX's key event listeners. Whenever JavaFX detects a key press, we will pass that key event to these methods for the game scenes implementing <code>GameScene</code> to handle. Implementing these methods allow for custom game logic to execute in response to keyboard events.</p>
+<p>Next, any game scene implementing <code>GameScene</code> needs to specify how the game state should be updated. Thus we will include the following method in the interface</p>
+<pre class="hljs"><code><div><span class="hljs-comment">/**
+ * The method called to progress the game state
+ * <span class="hljs-doctag">@param</span> currentTime the time in nanoseconds relative to an arbitrary 
+ * start time.
+ */</span> 
+<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">updateState</span><span class="hljs-params">(<span class="hljs-keyword">long</span> currentTime)</span></span>;
+</div></code></pre>
+<p>This method will be called by the game loop to advance the game state which typically involves updating the position of game objects. We need to to pass in a <code>currentTime: long</code> to decouple the game updates from the computer hardware's power. Consider two computers with two different CPUs. On the faster CPU the game loop will execute at a higher frequency than the slower computer which means the faster CPU will update the game more often. If implemented without care, the game may run at a higher speed on the faster computer giving an inconsistent experience across different hardwares. To remedy this issue, every time the game is updated, the time in nanoseconds must be supplied so that the game can determine the proper way to update the state so that the game state is tied to time that has passed and not hardware power. Thus even if one were to play the game on different computers, the experience will feel relatively similar as one's experience with time does not often change.</p>
+<p>Finally the <code>GameScene</code> needs a way to render the scene which means the following method must implemented</p>
+<pre class="hljs"><code><div><span class="hljs-comment">/**
+ * The method called to render the game scene to a canvas
+ * <span class="hljs-doctag">@param</span> canvas the canvas to draw the scene on
+ */</span> 
+<span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">render</span><span class="hljs-params">(Canvas canvas)</span></span>;
+</div></code></pre>
+<p>The <code>Canvas</code> object is from <code>javafx.scene.canvas.Canvas</code> and any sort of custom render code for the <code>GameScene</code> should perform all draw operations on this <code>Canvas</code>.</p>
+<p>Finally, as a convenience method <code>GameScene</code> should have a default method called <code>generateRenderableComponent(int, int) -&gt; Canvas</code>. This method essentially creates a <code>Canvas</code> object for us and configures it to handle keyboard inputs. It will take two integers which parametrizes the returned <code>Canvas</code>'s width and height, respectively. A <code>Canvas</code> will first be created and its key pressed handler will be attached to the <code>onKeyPressed</code> method in <code>GameScene</code>. Similarly, the key released handler will be attached to the <code>onKeyReleased</code> method in <code>GameScene</code>. Thus all keyboard events on the <code>Canvas</code> will be dispatched to class implementing <code>GameScene</code>. However in the current state, the <code>Canvas</code> will not accept keyboard inputs as it is not &quot;focused.&quot; The <code>Canvas</code> can received keyboard inputs by notifying JavaFX that the <code>Canvas</code> can be &quot;focused&quot; on. Then we just request the focus be on the <code>Canvas</code> and return the <code>Canvas</code> object. In code the method would resemble</p>
+<pre class="hljs"><code><div><span class="hljs-comment">/**
+ * Creates a Canvas object configured to be compatible with the GameScene
+ * interface
+ * <span class="hljs-doctag">@param</span> width the Canvas's width in pixels
+ * <span class="hljs-doctag">@param</span> height the Canvas's height in pixels
+ */</span>
+<span class="hljs-function"><span class="hljs-keyword">default</span> Canvas <span class="hljs-title">generateRenderableComponent</span><span class="hljs-params">(<span class="hljs-keyword">int</span> width, <span class="hljs-keyword">int</span> height)</span> </span>{
+    Canvas canvas = <span class="hljs-keyword">new</span> Canvas(width, height);
+    canvas.setOnKeyPressed(<span class="hljs-keyword">this</span>::onKeyPressed);
+    canvas.setOnKeyReleased(<span class="hljs-keyword">this</span>::onKeyReleased);
+    canvas.setFocusTraversable(<span class="hljs-keyword">true</span>);
+    canvas.requestFocus(<span class="hljs-keyword">true</span>);
+    <span class="hljs-keyword">return</span> canvas;
+}
+</div></code></pre>
+<p>Finally, <code>GameScene</code> should extend <code>Serializable</code>. We will impose this constraint so that later in the development of the game, we have the capability of saving game scenes on the drive and even transmit game scenes over the network.</p>
+<p>In whole the interface should look as such</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">interface</span> <span class="hljs-title">GameScene</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Serializable</span> </span>{
+    <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">updateState</span><span class="hljs-params">(<span class="hljs-keyword">long</span> currentTime)</span></span>;
+    <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">onKeyPressed</span><span class="hljs-params">(KeyEvent e)</span></span>;
+    <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">onKeyReleased</span><span class="hljs-params">(KeyEvent e)</span></span>;
+    <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">render</span><span class="hljs-params">(Canvas canvas)</span></span>;
+
+    <span class="hljs-function"><span class="hljs-keyword">default</span> Canvas <span class="hljs-title">generateRenderableComponent</span><span class="hljs-params">(<span class="hljs-keyword">int</span> width, <span class="hljs-keyword">int</span> height)</span> </span>{
+        Canvas canvas = <span class="hljs-keyword">new</span> Canvas(width, height);
+        canvas.setOnKeyPressed(<span class="hljs-keyword">this</span>::onKeyPressed);
+        canvas.setOnKeyReleased(<span class="hljs-keyword">this</span>::onKeyReleased);
+        canvas.setFocusTraversable(<span class="hljs-keyword">true</span>);
+        canvas.requestFocus();
+
+        <span class="hljs-keyword">return</span> canvas;
+    }
+}
+</div></code></pre>
+<p>The <code>GameScene</code> sets the foundation for the different phases a game goes through. We now need to drive it with a looping construct. Rather than use a naive <code>while</code> loop, we will make use of the <code>AnimationTimer</code> in JavaFX so as to not lock up the main thread of our program with the game loop. We will make a class called <code>GameLoop</code> which extends <code>AnimationTimer</code>. In order to extend <code>AnimationTimer</code> the class must override the <code>handle</code> method which is called every time the <code>AnimationTimer</code> &quot;ticks&quot; which occurs at a fairly high frequency. First, however, the class <code>GameLoop</code> has two fields: a <code>gameScene: GameScene</code> and a <code>canvas: Canvas</code>. The <code>GameScene</code> informs the <code>GameLoop</code> what scene it needs to drive, and the <code>Canvas</code> informs the <code>GameLoop</code> where the rendering should take place. The canonical constructor should be used to fill these fields. As for the <code>handle</code> from <code>AnimationTimer</code>, we simply need to call <code>updateState</code> and then <code>render</code> on <code>gameScene</code> every time the <code>AnimationTimer</code> pulses/ticks. In code the <code>handle</code> function would resemble</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">GameLoop</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">AnimationTimer</span> </span>{
+    <span class="hljs-keyword">private</span> GameScene gameScene;
+    <span class="hljs-keyword">private</span> Canvas canvas;
+    <span class="hljs-comment">// --snip--</span>
+
+    <span class="hljs-comment">/**
+    * The method called periodically by AnimationTimer
+    * <span class="hljs-doctag">@param</span> now the time in nanoseconds
+    */</span>
+    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">handle</span><span class="hljs-params">(<span class="hljs-keyword">long</span> now)</span> </span>{
+        gameScene.updateState(now);
+        gameScene.render(canvas);
+    }
+}
+</div></code></pre>
+<p>Now, whenever we would like to render a <code>GameScene</code>, we simply instantiate an instance of some <code>GameScene</code>, create a <code>Canvas</code> from it using <code>generateRenderableComponent</code>, pass both objects into the <code>GameLoop</code>, and run the <code>start</code> method on the <code>AnimationTimer</code> which <code>GameLoop</code> inherits.</p>
+<p>The work up to this point is represented diagrammatically below.</p>
+<p><img src="document_assets/gameloop_uml_img.png" alt="Game Loop UML"></p>
+<h2 id="the-physics-engine">The Physics Engine</h2>
+<p>To make computation easier we will develop a helper class called <code>Vec2d</code>. This class represents 2 dimensional vectors and has methods that can execute common vector operations. In this class there are 2 fields, both of which are doubles: <code>x</code> and <code>y</code>. For brevity assume that the canonical constructor is used and setters and getters for <code>x</code> and <code>y</code> are implemented. Mathematically, an instance of <code>Vec2d</code> will encode the vector $\left\langle x, y \right\rangle$.</p>
+<p>First, we will define a method <code>scale</code> which takes a <code>double</code> <code>c</code> and returns a new vector that is a scaled version of the current vector. To do this, we simply multiply each component of the vector by <code>c</code>.</p>
+<pre class="hljs"><code><div><span class="hljs-comment">/**
+ * Scales a vector by a constant multiple
+ * <span class="hljs-doctag">@param</span> c the constant multiple
+ * <span class="hljs-doctag">@return</span> a scaled vector
+ */</span>
+<span class="hljs-function"><span class="hljs-keyword">public</span> Vec2d <span class="hljs-title">scale</span><span class="hljs-params">(<span class="hljs-keyword">double</span> c)</span> </span>{
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> Vec2d(x*c, y*c);
+}
+</div></code></pre>
+<p>We will also define a method <code>add</code> which adds two vectors and returns the result. It takes a <code>Vec2d</code> called <code>other</code>, and adds <code>this</code> with <code>other</code>, component-wise.</p>
+<pre class="hljs"><code><div><span class="hljs-comment">/**
+ * Adds the current vector the another vector
+ * <span class="hljs-doctag">@param</span> other the vector to add with
+ * <span class="hljs-doctag">@return</span> the vector sum
+ */</span>
+<span class="hljs-function"><span class="hljs-keyword">public</span> Vec2d <span class="hljs-title">add</span><span class="hljs-params">(Vec2d other)</span> </span>{
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> Vec2d(
+        <span class="hljs-keyword">this</span>.x + other.x, <span class="hljs-keyword">this</span>.y + other.y
+    );
+}
+</div></code></pre>
+<p>Similarly subtraction is defined but the method is called <code>sub</code> and the components are subtracted as opposed to added.</p>
+<pre class="hljs"><code><div><span class="hljs-comment">/**
+ * Computes the difference between the current vector with another vector
+ * <span class="hljs-doctag">@param</span> other the vector to subtract with
+ * <span class="hljs-doctag">@return</span> the vector difference
+ */</span>
+<span class="hljs-function"><span class="hljs-keyword">public</span> Vec2d <span class="hljs-title">sub</span><span class="hljs-params">(Vec2d other)</span> </span>{
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> Vec2d(
+            <span class="hljs-keyword">this</span>.x - other.x, <span class="hljs-keyword">this</span>.y - other.y
+    );
+}
+</div></code></pre>
+<p>It will also be convenient to compute dot products, so we will also create a method <code>dot</code> that takes a <code>Vec2d</code> called <code>other</code> and returns a <code>double</code>. Given two vectors $\left\langle x, y \right\rangle$ and $\left\langle x', y' \right\rangle$ the dot product is $x \cdot x' + y \cdot y'$.</p>
+<pre class="hljs"><code><div><span class="hljs-comment">/**
+  * Computes the dot product between the current vector and another vector
+  * <span class="hljs-doctag">@param</span> other the other vector
+  * <span class="hljs-doctag">@return</span> the dot product
+  */</span>
+<span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">double</span> <span class="hljs-title">dot</span><span class="hljs-params">(Vec2d other)</span> </span>{
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.x * other.x + <span class="hljs-keyword">this</span>.y * other.y;
+}
+</div></code></pre>
+<p>The method <code>mag</code> should simply return a <code>double</code> representing the magnitude or length of the current vector. From linear algebra the magnitude of vector $\mathbf{v}$ is $\sqrt{\mathbf{v} \cdot \mathbf{v}}$ which conveniently can be implementing using <code>dot</code>.</p>
+<pre class="hljs"><code><div><span class="hljs-comment">/**
+ * Computes the length of the current vector
+ * <span class="hljs-doctag">@return</span> the length of the vector
+ */</span>
+<span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">double</span> <span class="hljs-title">mag</span><span class="hljs-params">()</span> </span>{
+    <span class="hljs-keyword">return</span> Math.sqrt(<span class="hljs-keyword">this</span>.dot(<span class="hljs-keyword">this</span>));
+}
+</div></code></pre>
+<p>We will also implement a method <code>projectOnto</code> which takes another <code>Vec2d</code> and returns a <code>Vec2d</code> representing the projection. Thus <code>a.projectOnto(b)</code> in mathematical notation would be $\text{proj}_\mathbf{b}\mathbf{a}$. Using linear algebra, this can be computed with</p>
+<p>$$
+\text{proj}_{\mathbf{b}}\mathbf{a} = \left(\mathbf{a} \cdot \frac{\mathbf{b}}{\lVert \mathbf{b} \rVert}\right) \mathbf{b}
+$$</p>
+<pre class="hljs"><code><div><span class="hljs-comment">/**
+ * Computes the projection of the current vector onto another vector
+ * <span class="hljs-doctag">@param</span> other the vector to project onto
+ * <span class="hljs-doctag">@return</span> the projection vector
+ */</span>
+<span class="hljs-function"><span class="hljs-keyword">public</span> Vec2d <span class="hljs-title">projectOnto</span><span class="hljs-params">(Vec2d other)</span> </span>{
+    Vec2d unit = other.normalize();
+    <span class="hljs-keyword">return</span> unit.scale(unit.dot(<span class="hljs-keyword">this</span>));
+}
+
+</div></code></pre>
+<p>Along with projections, we should allow for computing the &quot;rejection&quot;. The method <code>rejectOn</code> takes a <code>Vec2d</code> and returns another <code>Vec2d</code>. So <code>a.rejectOn(b)</code> would be the &quot;rejection of $\mathbf{a}$ on $\mathbf{b}$&quot;. We will define this rejection as $\mathbf{a} - \text{proj}_\mathbf{b}\mathbf{a}$ which is a vector perpendicular to $\mathbf{b}$ as opposed to being parallel like the projection.</p>
+<pre class="hljs"><code><div><span class="hljs-comment">/**
+ * Compute the rejection of the current vector on another vector
+ * <span class="hljs-doctag">@param</span> other the vector to reject on
+ * <span class="hljs-doctag">@return</span> the rejection vector
+ */</span>
+<span class="hljs-function"><span class="hljs-keyword">public</span> Vec2d <span class="hljs-title">rejectOn</span><span class="hljs-params">(Vec2d other)</span> </span>{
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.sub(<span class="hljs-keyword">this</span>.projectOnto(other));
+}
+</div></code></pre>
+<p>Finally, the last method to be implemented is <code>rotate</code> which takes a <code>double</code> called <code>angle</code> in radians. It returns a <code>Vec2d</code> that is the rotation of the current vector, rotated about the origin by <code>angle</code>. This action can be done using a rotation matrix</p>
+<p>$$
+\begin{bmatrix}
+\cos \theta &amp; -\sin \theta \\<br>
+\sin \theta &amp; \cos \theta
+\end{bmatrix}
+\begin{bmatrix} x \\ y \end{bmatrix}
+\ = \
+\begin{bmatrix}
+x\cos\theta-y\sin\theta \\
+x\sin\theta+y\cos\theta
+\end{bmatrix}.
+$$</p>
+<p>For more information see <a href="https://en.wikipedia.org/wiki/Rotation_matrix">https://en.wikipedia.org/wiki/Rotation_matrix</a> which is where the above formula came from.</p>
+<pre class="hljs"><code><div><span class="hljs-comment">/**
+ * Rotates the current vector about the origin
+ * <span class="hljs-doctag">@param</span> angle the angle to rotate by in radians
+ * <span class="hljs-doctag">@return</span> a rotated vector
+ */</span>
+<span class="hljs-function"><span class="hljs-keyword">public</span> Vec2d <span class="hljs-title">rotate</span><span class="hljs-params">(<span class="hljs-keyword">double</span> angle)</span> </span>{
+    <span class="hljs-keyword">double</span> c = Math.cos(angle);
+    <span class="hljs-keyword">double</span> s = Math.sin(angle);
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> Vec2d(x*c - y*s, x*s + y*c);
+}
+</div></code></pre>
+<p>Now with two dimensional vectors implemented, we will use mathematical notation for vectors when convenient with the understanding that they can easily converted into an instance of <code>Vec2d</code>.</p>
+<p>To detect collisions between different types of shapes, we will make an interface <code>Collider</code> with the following form.</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">interface</span> <span class="hljs-title">Collider</span> </span>{
+    <span class="hljs-comment">/**
+     * Determines whether two Colliders intersect each other
+     * <span class="hljs-doctag">@param</span> other the other collider with which to check for an intersection
+     * <span class="hljs-doctag">@return</span> a boolean that determines if the current Collider intersects 
+     * with other
+     */</span>
+    <span class="hljs-function"><span class="hljs-keyword">boolean</span> <span class="hljs-title">collide</span><span class="hljs-params">(Collider other)</span></span>;
+    <span class="hljs-comment">/**
+     * Gets the position of the Collider
+     * <span class="hljs-doctag">@return</span> the position of the Collider
+     */</span>
+    <span class="hljs-function">Vec2d <span class="hljs-title">getPosition</span><span class="hljs-params">()</span></span>;
+    <span class="hljs-comment">/**
+     * Sets the position of the Collider
+     * <span class="hljs-doctag">@param</span> position the new location of the Collider
+     */</span>
+    <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">setPosition</span><span class="hljs-params">(Vec2d position)</span></span>;
+}
+</div></code></pre>
+<p>Notice that we are making use of <code>Vec2d</code> to describe a physical property like position. In any event, the method of particular interest is <code>collide</code> which every class implementing <code>Collider</code> must create. This method is used to check collision between two <code>Collider</code> objects.</p>
+<p>The first <code>Collider</code> we will create will be a <code>RectangleCollider</code>. A <code>RectangleCollider</code> is defined by the position of its top-left corner which we will call the <code>origin: Vec2d</code>. The collider is also defined by the following doubles: <code>width</code>, <code>height</code>, and <code>angle</code>. Note that <code>angle</code> should be in radians and it describes how much the rectangle is rotated about its origin. See the figure below for an illustration. In the image $(x, y)$ is <code>origin</code> and $\theta$ is <code>angle</code>.</p>
+<p><img src="document_assets/rect_def.png" alt="Rectangle Collider"></p>
+<p>The canonical construction should be made, and setters and getters for the attributes should be made. For <code>setPosition</code> and <code>getPosition</code> from <code>Collider</code>, the <code>origin</code> should be taken as the <code>RectangleCollider</code>'s position.</p>
+<p>The <code>RectangleCollider</code> class should also have a helper method <code>computeVerticesAndBasis</code> which returns an array of <code>Vec2d</code>s. The returned array will be composed of 6 <code>Vec2d</code>s. The 4 vertices of the rectangle, starting at the <code>origin</code> and moving clockwise, will be the first 4 entries and the last 2 entries will be &quot;basis&quot; vectors of the rectangle. See the figure below to visualize the basis vectors which in essence form a local coordinate system on the rectangle relative to <code>origin</code>. The basis vectors in the figure are $\mathbf{b}_1$ and $\mathbf{b}_2$, and note that for convenience purposes these vector will have unit length.</p>
+<p><img src="document_assets/rect_basis.png" alt="Rectangle Collider Basis"></p>
+<p>We can easily compute the 6 values using basic linear algebra. Let</p>
+<p>$$
+\mathbf{u} = \left\langle \text{width}, 0 \right\rangle
+$$</p>
+<p>and</p>
+<p>$$
+\mathbf{v} = \left\langle 0, \text{height} \right\rangle.
+$$
+As of now these two vectors form the axis-aligned version of the rectangle. To get the rotated version, we should rotate both of these vectors by <code>angle</code> using the <code>rotate</code> method in <code>Vec2d</code>. We will now denote the rotated version of $\mathbf{u}$ and $\mathbf{v}$ as $\mathbf{u}'$ and $\mathbf{v}'$ respectively. We can now form the array.</p>
+<p>$$
+\begin{bmatrix}
+\mathtt{origin} \\
+\mathtt{origin} + \mathbf{u}' \\
+\mathtt{origin} + \mathbf{u}' + \mathbf{v}' \\
+\mathtt{origin} + \mathbf{v}' \\
+\mathbf{u}'\mathtt{.normalize()} \\
+\mathbf{v}'\mathtt{.normalize()} \\
+\end{bmatrix}
+$$</p>
+<p>The code would resemble</p>
+<pre class="hljs"><code><div><span class="hljs-comment">/**
+ * Computes the vertices of the rotated rectangle along and also returns the local coordinate space
+ * <span class="hljs-doctag">@return</span> a list of vectors where the first 4 vectors are the vertices and the last two are the basis
+ * vectors of the local coordinate space
+ */</span>
+<span class="hljs-keyword">public</span> Vec2d[] computeVerticesAndBasis() {
+    Vec2d b1 = <span class="hljs-keyword">new</span> Vec2d(width, <span class="hljs-number">0</span>).rotate(angle);
+    Vec2d b2 = <span class="hljs-keyword">new</span> Vec2d(<span class="hljs-number">0</span>, height).rotate(angle);
+    Vec2d sum = b1.add(b2);
+
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> Vec2d[] {
+            origin,
+            origin.add(b1),
+            origin.add(sum),
+            origin.add(b2),
+            b1.normalize(),
+            b2.normalize()
+    };
+}
+</div></code></pre>
+<p>Before we implement <code>collide</code> from <code>Collider</code> for <code>RectangleCollider</code>, we should introduce another collider: <code>CircleCollider</code>. A <code>CircleCollider</code> is parameterized by the following fields: <code>center: Vec2d</code> and <code>radius: double</code>. Both of these fields should have setters and getters, and the canonical constructor should be used to populate these fields. Furthermore <code>getPosition</code> and <code>setPosition</code> from <code>Collider</code> should access and mutate <code>center</code> as the position.</p>
+<p>We now introduce the collision detection for <code>RectangleCollider</code>. The <code>collide</code> method from the <code>Collider</code> interface has as parameter an <code>other</code> object of type <code>Collider</code>. Thus it is sensible to break up the collision detection depending on the type <code>Collider</code> of collider passed.</p>
+<p>For the first case, assuming that <code>other</code> is a <code>RectangleCollider</code>, we will assert that a collision has occurred iff the vertex of one <code>RectangleCollider</code> lies within the boundaries of the other. Therefore, let <code>thisVerticesAndBasis = this.computeVerticesAndBasis()</code> and <code>otherVerticesAndBasis = other.computeVerticesAndBasis()</code>. We need to check if <code>other</code>'s vertices lie in <code>this</code>'s region. For each vertex <code>v</code> in <code>otherVerticesAndBasis[0:4]</code>, compute the displacement vector <code>d: Vec2d</code> of <code>v</code> relative to <code>this.origin</code>. That is <code>d = v - this.origin</code>. We now express <code>d</code> in terms of <code>this</code>'s basis vectors which amounts to finding constants $c_1$ and $c_2$ such that</p>
+<p>$$
+\mathbf{d} = c_1 \mathbf{b}_1 + c_2 \mathbf{b}_2
+$$
+where $\mathbf{b}_i$ are <code>this</code>'s basis vectors. From linear algebra it turns out that $c_i = \mathbf{d} \cdot \mathbf{b}_i$. If</p>
+<p>$$<br>
+0 \leq c_1 \leq \mathtt{this.width}
+$$</p>
+<p>and</p>
+<p>$$
+0 \leq c_2 \leq \mathtt{this.height}
+$$</p>
+<p>then <code>v</code> is in the bound of <code>this</code>'s region and we can return true. We now do the same analysis but interchange the roles of <code>this</code> and <code>other</code> to check whether <code>this</code>'s vertices lie within <code>other</code>'s bound. The analysis is omitted and the code below should clear any confusion.</p>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">boolean</span> <span class="hljs-title">collide</span><span class="hljs-params">(Collider other)</span> </span>{
+    <span class="hljs-keyword">if</span> (other <span class="hljs-keyword">instanceof</span> RectangleCollider) {
+        RectangleCollider otherRect = (RectangleCollider) other;
+        Vec2d[] thisVerticesAndBasis = <span class="hljs-keyword">this</span>.computeVerticesAndBasis();
+        Vec2d[] otherVerticesAndBasis = otherRect.computeVerticesAndBasis();
+
+        <span class="hljs-comment">// Check if other's vertices are inside this's rectangular region</span>
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">int</span> i = <span class="hljs-number">0</span>; i &lt; <span class="hljs-number">4</span>; i++) {
+            Vec2d vertex = otherVerticesAndBasis[i];
+            Vec2d displacement = vertex.sub(thisVerticesAndBasis[<span class="hljs-number">0</span>]);
+            <span class="hljs-comment">// Decompose displacement in terms of this's</span>
+            <span class="hljs-comment">// local coordinate space</span>
+            <span class="hljs-comment">// displacement = c1*this.b1 + c2*this.b2</span>
+            <span class="hljs-keyword">double</span> c1 = thisVerticesAndBasis[<span class="hljs-number">4</span>].dot(displacement);
+            <span class="hljs-keyword">double</span> c2 = thisVerticesAndBasis[<span class="hljs-number">5</span>].dot(displacement);
+
+            <span class="hljs-comment">// vertex is in this's region iff</span>
+            <span class="hljs-comment">// 0 &lt;= c1 &lt;= this.width and</span>
+            <span class="hljs-comment">// 0 &lt;= c2 &lt;= this.height</span>
+            <span class="hljs-keyword">if</span> (
+                <span class="hljs-number">0</span> &lt;= c1 &amp;&amp; c1 &lt;= <span class="hljs-keyword">this</span>.width &amp;&amp; 
+                <span class="hljs-number">0</span> &lt;= c2 &amp;&amp; c2 &lt;= <span class="hljs-keyword">this</span>.height
+            ) {
+                <span class="hljs-keyword">return</span> <span class="hljs-keyword">true</span>;
+            }
+        }
+
+        <span class="hljs-comment">// Check if this's vertices are inside other's rectangular region</span>
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">int</span> i = <span class="hljs-number">0</span>; i &lt; <span class="hljs-number">4</span>; i++) {
+            Vec2d vertex = thisVerticesAndBasis[i];
+            Vec2d displacement = vertex.sub(otherVerticesAndBasis[<span class="hljs-number">0</span>]);
+            <span class="hljs-comment">// Decompose displacement in terms of other's </span>
+            <span class="hljs-comment">// local coordinate space</span>
+            <span class="hljs-comment">// displacement = c1*other.b1 + c2*other.b2</span>
+            <span class="hljs-keyword">double</span> c1 = otherVerticesAndBasis[<span class="hljs-number">4</span>].dot(displacement);
+            <span class="hljs-keyword">double</span> c2 = otherVerticesAndBasis[<span class="hljs-number">5</span>].dot(displacement);
+
+            <span class="hljs-comment">// vertex is in this's region iff</span>
+            <span class="hljs-comment">// 0 &lt;= c1 &lt;= other.width and</span>
+            <span class="hljs-comment">// 0 &lt;= c2 &lt;= other.height</span>
+            <span class="hljs-keyword">if</span> (
+                <span class="hljs-number">0</span> &lt;= c1 &amp;&amp; c1 &lt;= otherRect.width &amp;&amp; 
+                <span class="hljs-number">0</span> &lt;= c2 &amp;&amp; c2 &lt;= otherRect.height
+            ) {
+                <span class="hljs-keyword">return</span> <span class="hljs-keyword">true</span>;
+            }
+        }
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (other <span class="hljs-keyword">instanceof</span> CircleCollider) {
+        <span class="hljs-comment">// --snip--</span>
+    }
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">false</span>;
+}
+</div></code></pre>
+<p>We have handled rectangle on rectangle collisions. We shall now focus our attention on rectangle on circle collisions. While still in <code>RectangleCollider</code>, we handle the case in which <code>other: Collider</code> is now in fact a <code>CircleCollider</code>.</p>
+<p><img src="document_assets/rect_closest.png" alt="Closest Point">.</p>
+<p>Before discussing rectangle on circle collisions, it is helpful to understand how one can find the closest point on the rectangle to some point whose displacement from the rectangle's origin is $\mathbf{v}$. See the diagram above. As the diagram suggests, we can find the closest point by representing $\mathbf{v}$ in terms of the basis vectors similar to what we did for rectangle on rectangle collisions. Using the same technique as before we can find constants $c_1$ and $c_2$ such that</p>
+<p>$$
+\mathbf{v} = c_1 \mathbf{b}_1 + c_2 \mathbf{b}_2
+$$</p>
+<p>A point is in the rectangle iff its displacement vector has $c_1 \in [0, w]$ and $c_2 \in [0, h]$, assuming we are following the notation laid out in the diagram. Therefore we can compute the closest point by finding the closest value in $[0, w]$ to $c_1$ and the closest value in $[0, h]$ to $c_2$. Therefore to find the closest point let $c_1' = \max(0, \min(c_1, w))$ and $c_2' = \max(0, \min(c_2, h))$. The closest point will thus be</p>
+<p>$$
+\text{closest point} = \mathtt{origin} + c_1' \mathbf{b}_1 + c_2' \mathbf{b}_2
+$$</p>
+<p>Now that we have a way of finding the closest point, to determine rectangle on circle collision, we simply have to find the closest point on the rectangle to the circle and check if the distance from the circle's center to the closest point is less than or equal to the circle's radius. Diagrammatically the figure below argues the reasoning for this collision check.</p>
+<p><img src="document_assets/rect_circ.png" alt="Rectangle on Circle Collision"></p>
+<p>In code the collision check would be as follow</p>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">boolean</span> <span class="hljs-title">collide</span><span class="hljs-params">(Collider other)</span> </span>{
+    <span class="hljs-keyword">if</span> (other <span class="hljs-keyword">instanceof</span> RectangleCollider) {
+        <span class="hljs-comment">// --snip--</span>
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (other <span class="hljs-keyword">instanceof</span> CircleCollider) {
+        CircleCollider otherCircle = (CircleCollider) other;
+        Vec2d[] thisVerticesAndBasis = <span class="hljs-keyword">this</span>.computeVerticesAndBasis();
+        Vec2d basis1 = thisVerticesAndBasis[<span class="hljs-number">4</span>];
+        Vec2d basis2 = thisVerticesAndBasis[<span class="hljs-number">5</span>];
+        Vec2d displacement = otherCircle.getCenter().sub(thisVerticesAndBasis[<span class="hljs-number">0</span>]);
+
+        <span class="hljs-comment">// Decompose displacement in terms of basis1 and basis2</span>
+        <span class="hljs-comment">// displacement = c1*basis1 + c2*basis2</span>
+        <span class="hljs-keyword">double</span> c1 = basis1.dot(displacement);
+        <span class="hljs-keyword">double</span> c2 = basis2.dot(displacement);
+
+        <span class="hljs-comment">// If displacement has a "negative component", convert it to 0</span>
+        c1 = Math.max(<span class="hljs-number">0</span>, c1);
+        c2 = Math.max(<span class="hljs-number">0</span>, c2);
+        <span class="hljs-comment">// If displacement has a component greater than the rectangle's </span>
+        <span class="hljs-comment">// bound, covert to the rectangle bounds</span>
+        c1 = Math.min(width, c1);
+        c2 = Math.min(height, c2);
+
+        Vec2d closestPoint = 
+            basis1
+            .scale(c1)
+            .add(basis2.scale(c2))
+            .add(thisVerticesAndBasis[<span class="hljs-number">0</span>]);
+
+        <span class="hljs-keyword">return</span> 
+            closestPoint.sub(otherCircle.getCenter()).mag() 
+        &lt;= 
+            otherCircle.getRadius();
+    }
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">false</span>;
+}
+</div></code></pre>
+<p>With the <code>RectangleCollider</code>'s implementation finished, the <code>CircleCollider</code> should also be finished. Like in the <code>RectangleCollider</code>, the <code>collide</code> method takes an <code>other: Collider</code> object and we should execute different logic depending on the type of <code>Collider</code> <code>other</code> is. If <code>other</code> is a <code>CircleCollider</code>, determining a collision is straightforward. Simply compute the distance between the two centers. If that distance is less than or equal to the sum of the radii, then a collision occurred.</p>
+<p>If, however, <code>other</code> is a <code>RectangleCollider</code> then simply call <code>other.collide(this)</code> as circle on rectangle collisions are the same as rectangle on circle collisions.</p>
+<p>In code <code>collide</code> for the <code>CircleCollider</code> would be</p>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">boolean</span> <span class="hljs-title">collide</span><span class="hljs-params">(Collider other)</span> </span>{
+    <span class="hljs-keyword">if</span> (other <span class="hljs-keyword">instanceof</span> CircleCollider) {
+        CircleCollider otherCircle = (CircleCollider) other;
+        <span class="hljs-keyword">double</span> distance = otherCircle.center.sub(<span class="hljs-keyword">this</span>.center).mag();
+        <span class="hljs-keyword">return</span> distance &lt;= <span class="hljs-keyword">this</span>.radius + otherCircle.radius;
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (other <span class="hljs-keyword">instanceof</span> RectangleCollider) {
+        RectangleCollider otherRect = (RectangleCollider) other;
+        <span class="hljs-keyword">return</span> otherRect.collide(<span class="hljs-keyword">this</span>);
+    }
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">false</span>;
+}
+</div></code></pre>
+<p>The diagram below shows the components of the physics engine.</p>
+<p><img src="document_assets/physics_uml_img.png" alt="Physics UML Diagram"></p>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script>
+window.MathJax = {
+  tex: {
+    inlineMath: [['$', '$'], ['\\(', '\\)']],
+    displayMath: [
+        ['$$', '$$'],
+        ['\\[', '\\]']
+    ],
+  }
+};
+</script>
+
+</body>
+</html>
