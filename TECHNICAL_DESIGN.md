@@ -128,7 +128,7 @@ The work up to this point is represented diagrammatically below.
 ![Game Loop UML](document_assets/gameloop_uml_img.png)
 
 ## The Physics Engine
-To make computation easier we will develop a helper class called `Vec2d`. This class represents 2 dimensional vectors and has methods that can execute common vector operations. In this class there are 2 fields, both of which are doubles: `x` and `y`. For brevity assume that the canonical constructor is used and setters and getters for `x` and `y` are implemented. Mathematically, an instance of `Vec2d` will encode the vector $\left\langle x, y \right\rangle$. 
+To make computation easier we will develop a helper class called `Vec2d`. This class represents 2 dimensional vectors and has methods that can execute common vector operations. In this class there are 2 fields, both of which are doubles: `x` and `y`. For brevity assume that the canonical constructor is used and setters and getters for `x` and `y` are implemented. Mathematically, an instance of `Vec2d` will encode the vector $\left\langle x, y \right\rangle$. This class should also implement `Serializable`.
 
 First, we will define a method `scale` which takes a `double` `c` and returns a new vector that is a scaled version of the current vector. To do this, we simply multiply each component of the vector by `c`.
 
@@ -214,20 +214,6 @@ public Vec2d projectOnto(Vec2d other) {
     Vec2d unit = other.normalize();
     return unit.scale(unit.dot(this));
 }
-
-```
-
-Along with projections, we should allow for computing the "rejection". The method `rejectOn` takes a `Vec2d` and returns another `Vec2d`. So `a.rejectOn(b)` would be the "rejection of $\mathbf{a}$ on $\mathbf{b}$". We will define this rejection as $\mathbf{a} - \text{proj}_\mathbf{b}\mathbf{a}$ which is a vector perpendicular to $\mathbf{b}$ as opposed to being parallel like the projection.
-
-```java
-/**
- * Compute the rejection of the current vector on another vector
- * @param other the vector to reject on
- * @return the rejection vector
- */
-public Vec2d rejectOn(Vec2d other) {
-    return this.sub(this.projectOnto(other));
-}
 ```
 
 Finally, the last method to be implemented is `rotate` which takes a `double` called `angle` in radians. It returns a `Vec2d` that is the rotation of the current vector, rotated about the origin by `angle`. This action can be done using a rotation matrix
@@ -266,10 +252,11 @@ Now with two dimensional vectors implemented, we will use mathematical notation 
 To detect collisions between different types of shapes, we will make an interface `Collider` with the following form.
 
 ```java
-public interface Collider {
+public interface Collider extends Serializable {
     /**
      * Determines whether two Colliders intersect each other
-     * @param other the other collider with which to check for an intersection
+     * @param other the other collider with which to check for an 
+     * intersection
      * @return a boolean that determines if the current Collider intersects 
      * with other
      */
@@ -286,6 +273,7 @@ public interface Collider {
     void setPosition(Vec2d position);
 }
 ```
+The interface should extend `Serialiable` so that it can be converted into bytes for storage and transmission.
 
 Notice that we are making use of `Vec2d` to describe a physical property like position. In any event, the method of particular interest is `collide` which every class implementing `Collider` must create. This method is used to check collision between two `Collider` objects.
 
@@ -327,9 +315,10 @@ The code would resemble
 
 ```java
 /**
- * Computes the vertices of the rotated rectangle along and also returns the local coordinate space
- * @return a list of vectors where the first 4 vectors are the vertices and the last two are the basis
- * vectors of the local coordinate space
+ * Computes the vertices of the rotated rectangle along and also returns 
+ * the local coordinate space
+ * @return a list of vectors where the first 4 vectors are the vertices 
+ * and the last two are the basis vectors of the local coordinate space
  */
 public Vec2d[] computeVerticesAndBasis() {
     Vec2d b1 = new Vec2d(width, 0).rotate(angle);
@@ -351,12 +340,18 @@ Before we implement `collide` from `Collider` for `RectangleCollider`, we should
 
 We now introduce the collision detection for `RectangleCollider`. The `collide` method from the `Collider` interface has as parameter an `other` object of type `Collider`. Thus it is sensible to break up the collision detection depending on the type `Collider` of collider passed.
 
-For the first case, assuming that `other` is a `RectangleCollider`, we will assert that a collision has occurred iff the vertex of one `RectangleCollider` lies within the boundaries of the other. Therefore, let `thisVerticesAndBasis = this.computeVerticesAndBasis()` and `otherVerticesAndBasis = other.computeVerticesAndBasis()`. We need to check if `other`'s vertices lie in `this`'s region. For each vertex `v` in `otherVerticesAndBasis[0:4]`, compute the displacement vector `d: Vec2d` of `v` relative to `this.origin`. That is `d = v - this.origin`. We now express `d` in terms of `this`'s basis vectors which amounts to finding constants $c_1$ and $c_2$ such that 
+For the first case, assuming that `other` is a `RectangleCollider`, we will assert that a collision has occurred iff the vertex of one `RectangleCollider` lies within the boundaries of the other. Therefore, let `thisVerticesAndBasis = this.computeVerticesAndBasis()` and `otherVerticesAndBasis = other.computeVerticesAndBasis()`. We need to check if `other`'s vertices lie in `this`'s region. For each vertex `v` in `otherVerticesAndBasis[0:4]`, compute the displacement vector `d: Vec2d` of `v` relative to `this.origin`. That is 
+
+$$
+\mathbf{d} = \mathbf{v} - \mathtt{this.origin}
+$$ 
+
+We now express `d` in terms of `this`'s basis vectors which amounts to finding constants $c_1$ and $c_2$ such that 
 
 $$
 \mathbf{d} = c_1 \mathbf{b}_1 + c_2 \mathbf{b}_2
 $$
-where $\mathbf{b}_i$ are `this`'s basis vectors. From linear algebra it turns out that $c_i = \mathbf{d} \cdot \mathbf{b}_i$. If 
+where the $\mathbf{b}_i$'s are `this`'s basis vectors. From linear algebra it turns out that $c_i = \mathbf{d} \cdot \mathbf{b}_i$. This is due to the fact that the $\mathbf{b}_i$'s form what is known as an "orthonormal basis". In any event, if 
 
 $$    
 0 \leq c_1 \leq \mathtt{this.width}
@@ -374,8 +369,10 @@ then `v` is in the bound of `this`'s region and we can return true. We now do th
 public boolean collide(Collider other) {
     if (other instanceof RectangleCollider) {
         RectangleCollider otherRect = (RectangleCollider) other;
-        Vec2d[] thisVerticesAndBasis = this.computeVerticesAndBasis();
-        Vec2d[] otherVerticesAndBasis = otherRect.computeVerticesAndBasis();
+        Vec2d[] thisVerticesAndBasis = this
+                                        .computeVerticesAndBasis();
+        Vec2d[] otherVerticesAndBasis = otherRect
+                                        .computeVerticesAndBasis();
 
         // Check if other's vertices are inside this's rectangular region
         for (int i = 0; i < 4; i++) {
@@ -441,6 +438,34 @@ $$
 \text{closest point} = \mathtt{origin} + c_1' \mathbf{b}_1 + c_2' \mathbf{b}_2
 $$
 
+The theory outlined above is realized in the code below. The method `findClosestPoint` takes a `point: Vec2d` and returns a `Vec2d` which is the point on the rectangle closest to `point`.
+```java
+/**
+ * Finds the closest point on the rectangle to a given point
+ * @param point the point to find the closest point to
+ * @return the closest point to the given point
+ */
+public Vec2d findClosestPoint(Vec2d point) {
+    Vec2d[] thisVerticesAndBasis = this.computeVerticesAndBasis();
+    Vec2d basis1 = thisVerticesAndBasis[4];
+    Vec2d basis2 = thisVerticesAndBasis[5];
+    Vec2d displacement = point.sub(thisVerticesAndBasis[0]);
+
+    // Decompose displacement in terms of basis1 and basis2
+    // displacement = c1*basis1 + c2*basis2
+    double c1 = basis1.dot(displacement);
+    double c2 = basis2.dot(displacement);
+
+    // Clamp c1 to [0, width] and clamp c2 to [0, height]
+    c1 = Math.max(0, c1);
+    c2 = Math.max(0, c2);
+    c1 = Math.min(width, c1);
+    c2 = Math.min(height, c2);
+
+    return basis1.scale(c1).add(basis2.scale(c2)).add(thisVerticesAndBasis[0]);
+}
+```
+
 Now that we have a way of finding the closest point, to determine rectangle on circle collision, we simply have to find the closest point on the rectangle to the circle and check if the distance from the circle's center to the closest point is less than or equal to the circle's radius. Diagrammatically the figure below argues the reasoning for this collision check.
 
 ![Rectangle on Circle Collision](document_assets/rect_circ.png)
@@ -453,30 +478,7 @@ public boolean collide(Collider other) {
         // --snip--
     } else if (other instanceof CircleCollider) {
         CircleCollider otherCircle = (CircleCollider) other;
-        Vec2d[] thisVerticesAndBasis = this.computeVerticesAndBasis();
-        Vec2d basis1 = thisVerticesAndBasis[4];
-        Vec2d basis2 = thisVerticesAndBasis[5];
-        Vec2d displacement = otherCircle.getCenter().sub(thisVerticesAndBasis[0]);
-
-        // Decompose displacement in terms of basis1 and basis2
-        // displacement = c1*basis1 + c2*basis2
-        double c1 = basis1.dot(displacement);
-        double c2 = basis2.dot(displacement);
-
-        // If displacement has a "negative component", convert it to 0
-        c1 = Math.max(0, c1);
-        c2 = Math.max(0, c2);
-        // If displacement has a component greater than the rectangle's 
-        // bound, covert to the rectangle bounds
-        c1 = Math.min(width, c1);
-        c2 = Math.min(height, c2);
-
-        Vec2d closestPoint = 
-            basis1
-            .scale(c1)
-            .add(basis2.scale(c2))
-            .add(thisVerticesAndBasis[0]);
-
+        Vec2d closestPoint = findClosestPoint(otherCircle.getCenter());
         return 
             closestPoint.sub(otherCircle.getCenter()).mag() 
         <= 
@@ -509,6 +511,399 @@ public boolean collide(Collider other) {
 The diagram below shows the components of the physics engine.
 
 ![Physics UML Diagram](document_assets/physics_uml_img.png)
+
+## Entities
+Up to this point, we can implement the key objects in the game pong. There are obstacles, players, and a ball. Unifying all these objects are that they are game objects present in the game which we will describe as an "entity". 
+
+To unify all game objects under the same framework, we will create an abstract `Entity` class. This class will have the following protected fields that children can inherit: `id: String`, `position: Vec2d`, `velocity: Vec2d`, and `colliders: ArrayList<Collider>`. These fields will characterize an `Entity` and provide enough information for the dynamics of an entity. Setters and getters for all these fields should be made.
+
+Subclasses of `Entity` should have some way to be rendered to the screen. Thus `Entity` will have an abstract method `render` which takes a `Canvas` object. 
+
+```java
+/**
+ * Renders the entity to a canvas
+ * @param canvas the canvas to render the entity on
+ */
+public abstract void render(Canvas canvas);
+```
+
+Furthermore, when an `Entity` collides with another `Entity` the entities should be alerted of this fact. Thus there needs to be an abstract `onCollision` method with two parameters: `other: Entity` and `otherCollider: Collider`. The first parameter is the `Entity` that collided with the current `Entity`. The second parameter is the `Collider` on the other `Entity` that triggered the collision event. 
+
+```java
+/**
+ * The method invoked when this entity has collided with another entity
+ * @param other the entity that this entity collided with
+ * @param otherCollider the collider on the other entity that detected 
+ * the collision
+ */
+public abstract void onCollision(Entity other, Collider otherCollider);
+```
+
+Every `Entity` has associated with it a list of `Collider`s in the `colliders` field. Thus it would be helpful to have a method `collidesWith` that takes another `Entity` called `other` and returns `null` if the two entities did not collide but returns two `Collider`s if a collision did take place where the two `Collider`s are the colliders that caused a collision. Checking for a collision between two entities is straightforward. We simply check every pair of `Collider`s in both entities and run the `collide` method to check if the pair collides.
+
+```java
+/**
+ * Checks if this entity collides with another entity
+ * @param other the entity to check collision with
+ * @return return either null or 2 colliders. Null is returned if there is 
+ * no collision, but if there is a collision the first collider will be 
+ * the collider in this entity and the second collider will be the 
+ * collider in the other entity.
+ */
+public Collider[] collidesWith(Entity other) {
+    for (Collider thisCollider : this.colliders) {
+        for (Collider otherCollider : other.colliders) {
+            if (thisCollider.collide(otherCollider)) {
+                return new Collider[]{thisCollider, otherCollider};
+            }
+        }
+    }
+
+    return null;
+}
+```
+
+Finally, `Entity` should implement `Serializable` so that they can be saved to disk or transmitted over a network.
+
+### The Obstacle Entity
+An `Obstacle` class extending the `Entity` class will essentially be the `Entity` form of composite `Collider`s. The idea is that we would like to combine `Collider`s into one shape which can be deemed as an `Entity` for the game engine to actuate. 
+
+`Obstacle`s should have a color assigned. The color will be representing using RGB in `colorRgb: int[]`. We should also have the ability to choose whether the `Obstacle` is visible which will be in a field `isVisible: boolean`. Invisible `Obstacle`'s allow for trigger zones where some action can trigger if some collision occurs. For example when the ball leaves the screen we could put trigger zones outside the field to reset the game. With this in mind, the last field in an `Obstacle` should be a `trigger: CollisionEventHandler` where `CollisionEventHandler` is an interface whose only method requires that the `Entity` and its `Collider` that cause the collision event to occur be passed. Additionally, it should extend `Serializable`.
+
+```java
+public interface CollisionEventHandler extends Serializable {
+    void handleCollision(Entity other, Collider otherCollider);
+}
+```
+
+Whenever a developer creates an `Obstacle`, a `CollisionEventHandler` can be passed to allow for customizable game logic.
+
+Setters and getters for all the fields should be made. However, special care is taken for the constructor. 
+
+```java
+public Obstacle(
+    String name, 
+    Collider[] hitZones, 
+    int[] colorRgb, 
+    boolean isVisible, 
+    CollisionEventHandler trigger
+) {
+    this.id = name;
+    this.position = new Vec2d(0, 0);
+    this.velocity = new Vec2d(0, 0);
+    this.colliders = new ArrayList<>();
+    colliders.addAll(Arrays.asList(hitZones));
+
+    this.colorRgb = colorRgb;
+    this.isVisible = isVisible;
+    this.trigger = trigger;
+}
+```
+
+Recall that `Obstacle` extends `Entity` so the fields of `Entity` should be populated. The code displayed above is self-explanatory, but attention should be focused on the fact that the `position` is initialized to `(0, 0)`. This position was arbitrarily chosen as it is not clear what should be the position if the `Obstacle` is composed of multiple "zones".
+
+We should also override the `setPosition` method in `Entity` as setting the `position` field alone does not actually move the `Obstacle`. The reason is that the `Collider`s need to move whenever the position is changed. Because the `position` was arbitrarily chosen to be `(0, 0)`, we need to understand what it means to update an `Obstacle`'s position. Ideally we would want the colliders forming the `Obstacle` to maintain their positions relative to each other. Therefore whenever `setPosition` is called on the `Obstacle`, we need to compute a `displacement` that represents how much we need to move each `Collider` to give the illusion of the `Obstacle` having its position changed. The `displacement` is simply the difference between the given `position` passed to `setPosition` and the `Obstacle`'s current position. With this `displacement` we just change the position of each `Collider` in `colliders` by this `displacement.`
+
+```java
+@Override
+public void setPosition(Vec2d position) {
+    Vec2d displacement = position.sub(this.position);
+    super.setPosition(position);
+
+    for (Collider collider : this.colliders) {
+        collider.setPosition(
+                collider.getPosition().add(displacement)
+        );
+    }
+}
+```
+
+`Entity` also has an abstract `render` method which means we must define how to render an `Obstacle`. This is mechanically straightforward to do. We simply iterate through `colliders` and draw a rectangle if the `Collider` is a `RectangleCollider` and draw a circle if the `Collider` is a `CircleCollider`. The particularities of JavaFX drawing are explored in the code below. Note that if `isVisible` is `false`, then no rendering should take place. 
+
+**From this point on, we will impose that all spatial quantities in `Entity` assume that the coordinate system of the screen space is based on the unit square. All temporal units are assumed to be seconds.**
+
+The unit square screen space means the top left corner is `(0, 0)`, the top right corner is `(1, 0)`, the bottom left corner is `(0, 1)`, and the bottom right corner is `(1, 1)`. This design choice was made to decouple the rendering from the peculiarities of different screen resolutions and different window sizes.
+
+This unit square coordinate system is why during rendering quantities are multiplied by the `Canvas`'s width and height for quantities relating to horizontal and vertical distances, respectively.
+
+```java
+@Override
+public void render(Canvas canvas) {
+    if (!isVisible) {
+        return;
+    }
+
+    GraphicsContext ctx = canvas.getGraphicsContext2D();
+    ctx.setFill(Color.rgb(colorRgb[0], colorRgb[1], colorRgb[2]));
+    for (Collider collider : this.colliders) {
+        if (collider instanceof RectangleCollider) {
+            RectangleCollider rectangle = (RectangleCollider) collider;
+            Vec2d[] verticesAndBasis = rectangle.computeVerticesAndBasis();
+            ctx.fillPolygon(
+                    new double[]{
+                        verticesAndBasis[0].getX() * canvas.getWidth(),
+                        verticesAndBasis[1].getX() * canvas.getWidth(),
+                        verticesAndBasis[2].getX() * canvas.getWidth(),
+                        verticesAndBasis[3].getX() * canvas.getWidth(),
+                    },
+                    new double[]{
+                        verticesAndBasis[0].getY() * canvas.getHeight(),
+                        verticesAndBasis[1].getY() * canvas.getHeight(),
+                        verticesAndBasis[2].getY() * canvas.getHeight(),
+                        verticesAndBasis[3].getY() * canvas.getHeight(),
+                    },
+                    4
+            );
+        } else if (collider instanceof CircleCollider) {
+            CircleCollider circle = (CircleCollider) collider;
+            double centerX = circle.getCenter().getX();
+            double centerY = circle.getCenter().getY();
+            double r = circle.getRadius();
+            ctx.fillOval(
+                    (centerX - r) * canvas.getWidth(),
+                    (centerY - r) * canvas.getHeight(),
+                    2*r * canvas.getWidth(),
+                    2*r * canvas.getHeight()
+            );
+        }
+    }
+}
+```
+
+Finally, `Entity` has `onCollision` as abstract. As stated before, whenever a collision with the `Obstacle` is detected, this method will be invoked. What to do during a collision event is up to the developer so will we will simply pass the parameters of `onCollision` to `trigger.handleCollision` as such
+
+```java
+@Override
+public void onCollision(Entity other, Collider otherCollider) {
+    if (trigger != null) {
+        trigger.handleCollision(other, otherCollider);
+    }
+}
+```
+
+Note that a developer may choose to not pass a `CollisionEventHandler`. In which case, we simply do nothing when a collision occurs.
+
+### The Player Entity
+The player is a rectangular paddle. For the `Player` class which also extends `Entity`, it is sensible to have a `RectangularCollider` called `collider` as one of the fields. This `Collider` will also parameterize the player's width and height. We would also like the `Player` to have a property `moveSpeed: double` that dictates how fast the player moves. For example if `moveSpeed = 0.3`, then that implies that the player can move 30% of the screen in 1 second. We also should have a field `direction: int` which takes on the values `{-1, 0, 1}`. The value of direction determines if the `Player` is currently moving in the positive direction associate with it which we will call `positiveDirection: Vec2d`. Recall that `Player`s may be on the top/bottom or left/right sides of the screen so the positive direction will be down and right, respectively. Next we need to consider the keys that move the player. The fields `directionKeyPositive: int` and `directionKeyNegative: int` should be in `Player` and are the key codes on the keyboard associated with positive and negative movement. Finally, there needs to be a field `lastContactFreePosition: Vec2d` which will be used to revert the `Player` back to a position that is hopefully collision free. 
+
+Setters and getters should be made only for `moveSpeed` and `direction` as the other fields are "internal fields" that should not be exposed to the outside world.
+
+Making the constructor is slightly less straightforward as we need to take into account the fields of `Entity`. In any event, the code below is self-explanatory and merely fills in the fields mentioned above and the fields in `Entity`. It should be noted that we are assuming that `Player`s created are initialized to in a collision free state. When creating the `RectangleCollider` for the `Player`, we also need to add this collider to `colliders` in `Entity`. Otherwise, the `Player` would effectively have no colliders in the eyes of the engine.
+```java
+public Player(
+        String name,
+        Vec2d position,
+        double width,
+        double height,
+        Vec2d positiveDirection,
+        int directionKeyPositive,
+        int directionKeyNegative,
+        double moveSpeed
+) {
+    // Fill in Entity attributes
+    this.id = name;
+    this.position = position;
+    this.velocity = new Vec2d(0, 0);
+
+    this.collider = new RectangleCollider(position, width, height, 0);
+    this.colliders = new ArrayList<>();
+    this.colliders.add(collider);
+
+    // Fill in Player fields
+    direction = 0;
+    this.positiveDirection = positiveDirection;
+    this.directionKeyPositive = directionKeyPositive;
+    this.directionKeyNegative = directionKeyNegative;
+    this.moveSpeed = moveSpeed;
+    lastContactFreePosition = position;
+}
+```
+
+Just like the `Obstacle` class, we need to override the `setPosition` method in `Entity` so that the `RectangleCollider` in `Player` can "track" the `Player` as it has its position updated. First, whenever the position is updated, we will update `lastContactFreePosition` to be the current position _before_ we update the `position`. Then we modify `position` to the position passed, and then we update the position of the `RectangleCollider`.
+
+```java
+@Override
+public void setPosition(Vec2d position) {
+    lastContactFreePosition = this.position;
+    super.setPosition(position);
+    // Update the collider's position
+    collider.setPosition(position);
+}
+```
+
+The `render` method from `Entity` is not particularly interesting. We simply draw a rectangle wherever the player is.
+
+```java
+@Override
+public void render(Canvas canvas) {
+    GraphicsContext ctx = canvas.getGraphicsContext2D();
+    double canvasWidth = canvas.getWidth();
+    double canvasHeight = canvas.getHeight();
+
+    ctx.setFill(Color.RED);
+    ctx.fillRect(
+            collider.getOrigin().getX() * canvasWidth,
+            collider.getOrigin().getY() * canvasHeight,
+            collider.getWidth() * canvasWidth,
+            collider.getHeight() * canvasHeight
+    );
+}
+```
+
+The `onCollision` method from `Entity` also is not very exciting. Essentially, if a collision is detected, we will revert the `Player`'s position back to its last contact free location, making sure that `lastContactFreeLocation` truly is a location that is contact free. Recall that `setPosition` will update the `lastContactFreeLocation`, but if a collision occurred, we most certainly do not want to assert that `lastContactFreeLocation` is the location the `Player` is currently in which is causing a collision with another `Entity`. 
+
+```java
+@Override
+public void onCollision(Entity other, Collider otherCollider) {
+    setPosition(lastContactFreePosition);
+    lastContactFreePosition = this.position;
+}
+```
+
+As a convenience, we will make the following methods `setDirectionKeyPress` and `setDirectionKeyRelease`. Both of these methods take a `keyCode: int` and change the direction of the `Player` depending on the key pressed.
+
+For `setDirectionKeyPress`, if the key code matches `directionKeyPositive` then we set the `direction` to `+1`. If the key code matches `directionKeyNegative` then we set the `direction` to `-1`.
+
+```java
+/**
+ * Sets the direction of the player based on the key pressed
+ * @param keyCode the key pressed
+ */
+public void setDirectionKeyPress(int keyCode) {
+    if (keyCode == directionKeyPositive) {
+        setDirection(1);
+    } else if (keyCode == directionKeyNegative) {
+        setDirection(-1);
+    }
+}
+```
+
+For `setDirectionKeyRelease`, if the key released matches the direction the `Player` is currently moving in, then we want to set the `Player`'s `direction` to `0`.
+
+```java
+/**
+ * Sets the direction of the player based on the key released
+ * @param keyCode the key released
+ */
+public void setDirectionKeyRelease(int keyCode) {
+    // If the key released matches the direction being moved in, stay still
+    if (
+        (keyCode == directionKeyPositive && direction == 1) ||
+        (keyCode == directionKeyNegative && direction == -1)
+    ) {
+        setDirection(0);
+    }
+}
+```
+
+We are not quite finished yet. We need to modify the `setDirection` method. Such that whenever the direction is set, the `Player`'s velocity is also altered. We simply just change `velocity` to $(\mathtt{direction} \cdot \mathtt{moveSpeed}) \cdot \mathtt{positiveDirection}$.
+
+```java
+public void setDirection(int direction) {
+    this.direction = direction;
+    this.velocity = positiveDirection.scale(direction * moveSpeed);
+}
+```
+
+### The Ball Entity
+Like the `Player` class, the `Ball` will be characterized by its `Collider` `collider: BallCollider` which holds both the `Ball`'s position and radius. The `Ball` class will also have a `lastContactFreeLocation: Vec2d` to help revert the `Ball` back to a collision free state. The constructor is shown below and it follows the same format as the previous two entities.
+
+```java
+public Ball(
+    String name,
+    Vec2d centerPosition,
+    double radius
+) {
+    this.id = name;
+    this.position = centerPosition;
+    this.velocity = new Vec2d(0, 0);
+    this.colliders = new ArrayList<>();
+
+    this.collider = new CircleCollider(centerPosition, radius);
+    this.colliders.add(collider);
+
+    lastContactFreePosition = centerPosition;
+}
+```
+
+For the exact same reasons as `Player` the `setPosition` method from `Entity` needs to be updated to 
+
+```java
+@Override
+public void setPosition(Vec2d position) {
+    lastContactFreePosition = this.position;
+    super.setPosition(position);
+    collider.setPosition(position);
+}
+```
+
+The `render` method from `Entity` is also not particularly interesting. We simply use the `CircleCollider` to determine where to render the `Ball` to the `Canvas`.
+
+```java
+@Override
+public void render(Canvas canvas) {
+    GraphicsContext ctx = canvas.getGraphicsContext2D();
+
+    ctx.setFill(Color.BLUE);
+    double centerX = collider.getCenter().getX();
+    double centerY = collider.getCenter().getY();
+    double r = collider.getRadius();
+    ctx.fillOval(
+            (centerX - r) * canvas.getWidth(),
+            (centerY - r) * canvas.getHeight(),
+            (2*r) * canvas.getWidth(),
+            (2*r) * canvas.getHeight()
+    );
+}
+```
+
+The interesting portion of this class is when the `Ball` collides with another object. What the ball does when the `CircleCollider` comes into contact with a `RectangleCollider` is going to be different from the case when the `CircleCollider` comes into contact with a `CircleCollider`. Therefore we break up the `onCollision` code into cases.
+
+![Reflection](document_assets/reflection.png)
+
+When the `Ball` collides with another object, we want it to reflect off the surface. In general, if we know the surface normal and the velocity of the object, we can compute the new velocity of the object after reflecting off the surface. Refer to the figure above. Let $\mathbf{v}$ denote the velocity of the object and let $\mathbf{n}$ be the surface normal. The new velocity, which is the reflection is simply
+
+$$
+\mathbf{v} - 2 \cdot \text{proj}_{\mathbf{n}}{\mathbf{v}}
+$$
+
+In the case of the `Ball` colliding with a `RectangleCollider`, let $\mathbf{c}$ be the point on the rectangle closest to the `Ball`'s center $\mathbf{x}$. We will say that the normal vector is $\mathbf{n} = \mathbf{c} - \mathbf{x}$. However if the `Ball` with center $\mathbf{x}$ collides with a `CircleCollider` with center $\mathbf{c}$, we will say that the normal vector is $\mathbf{n} = \mathbf{c} - \mathbf{x}$. 
+
+We can now compute the reflection and then update the velocity. See the code below as a reference for how such a calculation might be implemented.
+
+```java
+@Override
+public void onCollision(Entity other, Collider otherCollider) {
+    setPosition(lastContactFreePosition);
+    lastContactFreePosition = this.position;
+    if (otherCollider instanceof RectangleCollider) {
+        RectangleCollider rectangleCollider = 
+                        (RectangleCollider) otherCollider;
+        Vec2d contactPoint = rectangleCollider
+                            .findClosestPoint(collider.getCenter());
+        Vec2d normal = collider.getCenter().sub(contactPoint);
+
+        this.velocity = this.velocity
+                        .add(
+                            this.velocity.projectOnto(normal).scale(-2.0)
+                        );
+    } else if (otherCollider instanceof CircleCollider) {
+        CircleCollider otherCircleCollider = 
+                        (CircleCollider) otherCollider;
+        Vec2d normal = collider
+                        .getCenter()
+                        .sub(otherCircleCollider.getCenter());
+        this.velocity = this.velocity
+                        .add(
+                            this.velocity.projectOnto(normal).scale(-2.0)
+                        );
+    }
+}
+```
+
+Diagrammatically what we have developed in this section is shown below
+
+![Entity UML Diagram](document_assets/entity_uml_img.png)
 
 <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>

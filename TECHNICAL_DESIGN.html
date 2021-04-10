@@ -479,7 +479,7 @@ code {
 <p>The work up to this point is represented diagrammatically below.</p>
 <p><img src="document_assets/gameloop_uml_img.png" alt="Game Loop UML"></p>
 <h2 id="the-physics-engine">The Physics Engine</h2>
-<p>To make computation easier we will develop a helper class called <code>Vec2d</code>. This class represents 2 dimensional vectors and has methods that can execute common vector operations. In this class there are 2 fields, both of which are doubles: <code>x</code> and <code>y</code>. For brevity assume that the canonical constructor is used and setters and getters for <code>x</code> and <code>y</code> are implemented. Mathematically, an instance of <code>Vec2d</code> will encode the vector $\left\langle x, y \right\rangle$.</p>
+<p>To make computation easier we will develop a helper class called <code>Vec2d</code>. This class represents 2 dimensional vectors and has methods that can execute common vector operations. In this class there are 2 fields, both of which are doubles: <code>x</code> and <code>y</code>. For brevity assume that the canonical constructor is used and setters and getters for <code>x</code> and <code>y</code> are implemented. Mathematically, an instance of <code>Vec2d</code> will encode the vector $\left\langle x, y \right\rangle$. This class should also implement <code>Serializable</code>.</p>
 <p>First, we will define a method <code>scale</code> which takes a <code>double</code> <code>c</code> and returns a new vector that is a scaled version of the current vector. To do this, we simply multiply each component of the vector by <code>c</code>.</p>
 <pre class="hljs"><code><div><span class="hljs-comment">/**
  * Scales a vector by a constant multiple
@@ -546,17 +546,6 @@ $$</p>
     Vec2d unit = other.normalize();
     <span class="hljs-keyword">return</span> unit.scale(unit.dot(<span class="hljs-keyword">this</span>));
 }
-
-</div></code></pre>
-<p>Along with projections, we should allow for computing the &quot;rejection&quot;. The method <code>rejectOn</code> takes a <code>Vec2d</code> and returns another <code>Vec2d</code>. So <code>a.rejectOn(b)</code> would be the &quot;rejection of $\mathbf{a}$ on $\mathbf{b}$&quot;. We will define this rejection as $\mathbf{a} - \text{proj}_\mathbf{b}\mathbf{a}$ which is a vector perpendicular to $\mathbf{b}$ as opposed to being parallel like the projection.</p>
-<pre class="hljs"><code><div><span class="hljs-comment">/**
- * Compute the rejection of the current vector on another vector
- * <span class="hljs-doctag">@param</span> other the vector to reject on
- * <span class="hljs-doctag">@return</span> the rejection vector
- */</span>
-<span class="hljs-function"><span class="hljs-keyword">public</span> Vec2d <span class="hljs-title">rejectOn</span><span class="hljs-params">(Vec2d other)</span> </span>{
-    <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.sub(<span class="hljs-keyword">this</span>.projectOnto(other));
-}
 </div></code></pre>
 <p>Finally, the last method to be implemented is <code>rotate</code> which takes a <code>double</code> called <code>angle</code> in radians. It returns a <code>Vec2d</code> that is the rotation of the current vector, rotated about the origin by <code>angle</code>. This action can be done using a rotation matrix</p>
 <p>$$
@@ -585,10 +574,11 @@ $$</p>
 </div></code></pre>
 <p>Now with two dimensional vectors implemented, we will use mathematical notation for vectors when convenient with the understanding that they can easily converted into an instance of <code>Vec2d</code>.</p>
 <p>To detect collisions between different types of shapes, we will make an interface <code>Collider</code> with the following form.</p>
-<pre class="hljs"><code><div><span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">interface</span> <span class="hljs-title">Collider</span> </span>{
+<pre class="hljs"><code><div><span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">interface</span> <span class="hljs-title">Collider</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Serializable</span> </span>{
     <span class="hljs-comment">/**
      * Determines whether two Colliders intersect each other
-     * <span class="hljs-doctag">@param</span> other the other collider with which to check for an intersection
+     * <span class="hljs-doctag">@param</span> other the other collider with which to check for an 
+     * intersection
      * <span class="hljs-doctag">@return</span> a boolean that determines if the current Collider intersects 
      * with other
      */</span>
@@ -605,6 +595,7 @@ $$</p>
     <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">setPosition</span><span class="hljs-params">(Vec2d position)</span></span>;
 }
 </div></code></pre>
+<p>The interface should extend <code>Serialiable</code> so that it can be converted into bytes for storage and transmission.</p>
 <p>Notice that we are making use of <code>Vec2d</code> to describe a physical property like position. In any event, the method of particular interest is <code>collide</code> which every class implementing <code>Collider</code> must create. This method is used to check collision between two <code>Collider</code> objects.</p>
 <p>The first <code>Collider</code> we will create will be a <code>RectangleCollider</code>. A <code>RectangleCollider</code> is defined by the position of its top-left corner which we will call the <code>origin: Vec2d</code>. The collider is also defined by the following doubles: <code>width</code>, <code>height</code>, and <code>angle</code>. Note that <code>angle</code> should be in radians and it describes how much the rectangle is rotated about its origin. See the figure below for an illustration. In the image $(x, y)$ is <code>origin</code> and $\theta$ is <code>angle</code>.</p>
 <p><img src="document_assets/rect_def.png" alt="Rectangle Collider"></p>
@@ -632,9 +623,10 @@ As of now these two vectors form the axis-aligned version of the rectangle. To g
 $$</p>
 <p>The code would resemble</p>
 <pre class="hljs"><code><div><span class="hljs-comment">/**
- * Computes the vertices of the rotated rectangle along and also returns the local coordinate space
- * <span class="hljs-doctag">@return</span> a list of vectors where the first 4 vectors are the vertices and the last two are the basis
- * vectors of the local coordinate space
+ * Computes the vertices of the rotated rectangle along and also returns 
+ * the local coordinate space
+ * <span class="hljs-doctag">@return</span> a list of vectors where the first 4 vectors are the vertices 
+ * and the last two are the basis vectors of the local coordinate space
  */</span>
 <span class="hljs-keyword">public</span> Vec2d[] computeVerticesAndBasis() {
     Vec2d b1 = <span class="hljs-keyword">new</span> Vec2d(width, <span class="hljs-number">0</span>).rotate(angle);
@@ -653,11 +645,15 @@ $$</p>
 </div></code></pre>
 <p>Before we implement <code>collide</code> from <code>Collider</code> for <code>RectangleCollider</code>, we should introduce another collider: <code>CircleCollider</code>. A <code>CircleCollider</code> is parameterized by the following fields: <code>center: Vec2d</code> and <code>radius: double</code>. Both of these fields should have setters and getters, and the canonical constructor should be used to populate these fields. Furthermore <code>getPosition</code> and <code>setPosition</code> from <code>Collider</code> should access and mutate <code>center</code> as the position.</p>
 <p>We now introduce the collision detection for <code>RectangleCollider</code>. The <code>collide</code> method from the <code>Collider</code> interface has as parameter an <code>other</code> object of type <code>Collider</code>. Thus it is sensible to break up the collision detection depending on the type <code>Collider</code> of collider passed.</p>
-<p>For the first case, assuming that <code>other</code> is a <code>RectangleCollider</code>, we will assert that a collision has occurred iff the vertex of one <code>RectangleCollider</code> lies within the boundaries of the other. Therefore, let <code>thisVerticesAndBasis = this.computeVerticesAndBasis()</code> and <code>otherVerticesAndBasis = other.computeVerticesAndBasis()</code>. We need to check if <code>other</code>'s vertices lie in <code>this</code>'s region. For each vertex <code>v</code> in <code>otherVerticesAndBasis[0:4]</code>, compute the displacement vector <code>d: Vec2d</code> of <code>v</code> relative to <code>this.origin</code>. That is <code>d = v - this.origin</code>. We now express <code>d</code> in terms of <code>this</code>'s basis vectors which amounts to finding constants $c_1$ and $c_2$ such that</p>
+<p>For the first case, assuming that <code>other</code> is a <code>RectangleCollider</code>, we will assert that a collision has occurred iff the vertex of one <code>RectangleCollider</code> lies within the boundaries of the other. Therefore, let <code>thisVerticesAndBasis = this.computeVerticesAndBasis()</code> and <code>otherVerticesAndBasis = other.computeVerticesAndBasis()</code>. We need to check if <code>other</code>'s vertices lie in <code>this</code>'s region. For each vertex <code>v</code> in <code>otherVerticesAndBasis[0:4]</code>, compute the displacement vector <code>d: Vec2d</code> of <code>v</code> relative to <code>this.origin</code>. That is</p>
+<p>$$
+\mathbf{d} = \mathbf{v} - \mathtt{this.origin}
+$$</p>
+<p>We now express <code>d</code> in terms of <code>this</code>'s basis vectors which amounts to finding constants $c_1$ and $c_2$ such that</p>
 <p>$$
 \mathbf{d} = c_1 \mathbf{b}_1 + c_2 \mathbf{b}_2
 $$
-where $\mathbf{b}_i$ are <code>this</code>'s basis vectors. From linear algebra it turns out that $c_i = \mathbf{d} \cdot \mathbf{b}_i$. If</p>
+where the $\mathbf{b}_i$'s are <code>this</code>'s basis vectors. From linear algebra it turns out that $c_i = \mathbf{d} \cdot \mathbf{b}_i$. This is due to the fact that the $\mathbf{b}_i$'s form what is known as an &quot;orthonormal basis&quot;. In any event, if</p>
 <p>$$<br>
 0 \leq c_1 \leq \mathtt{this.width}
 $$</p>
@@ -669,8 +665,10 @@ $$</p>
 <pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">boolean</span> <span class="hljs-title">collide</span><span class="hljs-params">(Collider other)</span> </span>{
     <span class="hljs-keyword">if</span> (other <span class="hljs-keyword">instanceof</span> RectangleCollider) {
         RectangleCollider otherRect = (RectangleCollider) other;
-        Vec2d[] thisVerticesAndBasis = <span class="hljs-keyword">this</span>.computeVerticesAndBasis();
-        Vec2d[] otherVerticesAndBasis = otherRect.computeVerticesAndBasis();
+        Vec2d[] thisVerticesAndBasis = <span class="hljs-keyword">this</span>
+                                        .computeVerticesAndBasis();
+        Vec2d[] otherVerticesAndBasis = otherRect
+                                        .computeVerticesAndBasis();
 
         <span class="hljs-comment">// Check if other's vertices are inside this's rectangular region</span>
         <span class="hljs-keyword">for</span> (<span class="hljs-keyword">int</span> i = <span class="hljs-number">0</span>; i &lt; <span class="hljs-number">4</span>; i++) {
@@ -729,6 +727,32 @@ $$</p>
 <p>$$
 \text{closest point} = \mathtt{origin} + c_1' \mathbf{b}_1 + c_2' \mathbf{b}_2
 $$</p>
+<p>The theory outlined above is realized in the code below. The method <code>findClosestPoint</code> takes a <code>point: Vec2d</code> and returns a <code>Vec2d</code> which is the point on the rectangle closest to <code>point</code>.</p>
+<pre class="hljs"><code><div><span class="hljs-comment">/**
+ * Finds the closest point on the rectangle to a given point
+ * <span class="hljs-doctag">@param</span> point the point to find the closest point to
+ * <span class="hljs-doctag">@return</span> the closest point to the given point
+ */</span>
+<span class="hljs-function"><span class="hljs-keyword">public</span> Vec2d <span class="hljs-title">findClosestPoint</span><span class="hljs-params">(Vec2d point)</span> </span>{
+    Vec2d[] thisVerticesAndBasis = <span class="hljs-keyword">this</span>.computeVerticesAndBasis();
+    Vec2d basis1 = thisVerticesAndBasis[<span class="hljs-number">4</span>];
+    Vec2d basis2 = thisVerticesAndBasis[<span class="hljs-number">5</span>];
+    Vec2d displacement = point.sub(thisVerticesAndBasis[<span class="hljs-number">0</span>]);
+
+    <span class="hljs-comment">// Decompose displacement in terms of basis1 and basis2</span>
+    <span class="hljs-comment">// displacement = c1*basis1 + c2*basis2</span>
+    <span class="hljs-keyword">double</span> c1 = basis1.dot(displacement);
+    <span class="hljs-keyword">double</span> c2 = basis2.dot(displacement);
+
+    <span class="hljs-comment">// Clamp c1 to [0, width] and clamp c2 to [0, height]</span>
+    c1 = Math.max(<span class="hljs-number">0</span>, c1);
+    c2 = Math.max(<span class="hljs-number">0</span>, c2);
+    c1 = Math.min(width, c1);
+    c2 = Math.min(height, c2);
+
+    <span class="hljs-keyword">return</span> basis1.scale(c1).add(basis2.scale(c2)).add(thisVerticesAndBasis[<span class="hljs-number">0</span>]);
+}
+</div></code></pre>
 <p>Now that we have a way of finding the closest point, to determine rectangle on circle collision, we simply have to find the closest point on the rectangle to the circle and check if the distance from the circle's center to the closest point is less than or equal to the circle's radius. Diagrammatically the figure below argues the reasoning for this collision check.</p>
 <p><img src="document_assets/rect_circ.png" alt="Rectangle on Circle Collision"></p>
 <p>In code the collision check would be as follow</p>
@@ -737,30 +761,7 @@ $$</p>
         <span class="hljs-comment">// --snip--</span>
     } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (other <span class="hljs-keyword">instanceof</span> CircleCollider) {
         CircleCollider otherCircle = (CircleCollider) other;
-        Vec2d[] thisVerticesAndBasis = <span class="hljs-keyword">this</span>.computeVerticesAndBasis();
-        Vec2d basis1 = thisVerticesAndBasis[<span class="hljs-number">4</span>];
-        Vec2d basis2 = thisVerticesAndBasis[<span class="hljs-number">5</span>];
-        Vec2d displacement = otherCircle.getCenter().sub(thisVerticesAndBasis[<span class="hljs-number">0</span>]);
-
-        <span class="hljs-comment">// Decompose displacement in terms of basis1 and basis2</span>
-        <span class="hljs-comment">// displacement = c1*basis1 + c2*basis2</span>
-        <span class="hljs-keyword">double</span> c1 = basis1.dot(displacement);
-        <span class="hljs-keyword">double</span> c2 = basis2.dot(displacement);
-
-        <span class="hljs-comment">// If displacement has a "negative component", convert it to 0</span>
-        c1 = Math.max(<span class="hljs-number">0</span>, c1);
-        c2 = Math.max(<span class="hljs-number">0</span>, c2);
-        <span class="hljs-comment">// If displacement has a component greater than the rectangle's </span>
-        <span class="hljs-comment">// bound, covert to the rectangle bounds</span>
-        c1 = Math.min(width, c1);
-        c2 = Math.min(height, c2);
-
-        Vec2d closestPoint = 
-            basis1
-            .scale(c1)
-            .add(basis2.scale(c2))
-            .add(thisVerticesAndBasis[<span class="hljs-number">0</span>]);
-
+        Vec2d closestPoint = findClosestPoint(otherCircle.getCenter());
         <span class="hljs-keyword">return</span> 
             closestPoint.sub(otherCircle.getCenter()).mag() 
         &lt;= 
@@ -786,6 +787,323 @@ $$</p>
 </div></code></pre>
 <p>The diagram below shows the components of the physics engine.</p>
 <p><img src="document_assets/physics_uml_img.png" alt="Physics UML Diagram"></p>
+<h2 id="entities">Entities</h2>
+<p>Up to this point, we can implement the key objects in the game pong. There are obstacles, players, and a ball. Unifying all these objects are that they are game objects present in the game which we will describe as an &quot;entity&quot;.</p>
+<p>To unify all game objects under the same framework, we will create an abstract <code>Entity</code> class. This class will have the following protected fields that children can inherit: <code>id: String</code>, <code>position: Vec2d</code>, <code>velocity: Vec2d</code>, and <code>colliders: ArrayList&lt;Collider&gt;</code>. These fields will characterize an <code>Entity</code> and provide enough information for the dynamics of an entity. Setters and getters for all these fields should be made.</p>
+<p>Subclasses of <code>Entity</code> should have some way to be rendered to the screen. Thus <code>Entity</code> will have an abstract method <code>render</code> which takes a <code>Canvas</code> object.</p>
+<pre class="hljs"><code><div><span class="hljs-comment">/**
+ * Renders the entity to a canvas
+ * <span class="hljs-doctag">@param</span> canvas the canvas to render the entity on
+ */</span>
+<span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">abstract</span> <span class="hljs-keyword">void</span> <span class="hljs-title">render</span><span class="hljs-params">(Canvas canvas)</span></span>;
+</div></code></pre>
+<p>Furthermore, when an <code>Entity</code> collides with another <code>Entity</code> the entities should be alerted of this fact. Thus there needs to be an abstract <code>onCollision</code> method with two parameters: <code>other: Entity</code> and <code>otherCollider: Collider</code>. The first parameter is the <code>Entity</code> that collided with the current <code>Entity</code>. The second parameter is the <code>Collider</code> on the other <code>Entity</code> that triggered the collision event.</p>
+<pre class="hljs"><code><div><span class="hljs-comment">/**
+ * The method invoked when this entity has collided with another entity
+ * <span class="hljs-doctag">@param</span> other the entity that this entity collided with
+ * <span class="hljs-doctag">@param</span> otherCollider the collider on the other entity that detected 
+ * the collision
+ */</span>
+<span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">abstract</span> <span class="hljs-keyword">void</span> <span class="hljs-title">onCollision</span><span class="hljs-params">(Entity other, Collider otherCollider)</span></span>;
+</div></code></pre>
+<p>Every <code>Entity</code> has associated with it a list of <code>Collider</code>s in the <code>colliders</code> field. Thus it would be helpful to have a method <code>collidesWith</code> that takes another <code>Entity</code> called <code>other</code> and returns <code>null</code> if the two entities did not collide but returns two <code>Collider</code>s if a collision did take place where the two <code>Collider</code>s are the colliders that caused a collision. Checking for a collision between two entities is straightforward. We simply check every pair of <code>Collider</code>s in both entities and run the <code>collide</code> method to check if the pair collides.</p>
+<pre class="hljs"><code><div><span class="hljs-comment">/**
+ * Checks if this entity collides with another entity
+ * <span class="hljs-doctag">@param</span> other the entity to check collision with
+ * <span class="hljs-doctag">@return</span> return either null or 2 colliders. Null is returned if there is 
+ * no collision, but if there is a collision the first collider will be 
+ * the collider in this entity and the second collider will be the 
+ * collider in the other entity.
+ */</span>
+<span class="hljs-keyword">public</span> Collider[] collidesWith(Entity other) {
+    <span class="hljs-keyword">for</span> (Collider thisCollider : <span class="hljs-keyword">this</span>.colliders) {
+        <span class="hljs-keyword">for</span> (Collider otherCollider : other.colliders) {
+            <span class="hljs-keyword">if</span> (thisCollider.collide(otherCollider)) {
+                <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> Collider[]{thisCollider, otherCollider};
+            }
+        }
+    }
+
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">null</span>;
+}
+</div></code></pre>
+<p>Finally, <code>Entity</code> should implement <code>Serializable</code> so that they can be saved to disk or transmitted over a network.</p>
+<h3 id="the-obstacle-entity">The Obstacle Entity</h3>
+<p>An <code>Obstacle</code> class extending the <code>Entity</code> class will essentially be the <code>Entity</code> form of composite <code>Collider</code>s. The idea is that we would like to combine <code>Collider</code>s into one shape which can be deemed as an <code>Entity</code> for the game engine to actuate.</p>
+<p><code>Obstacle</code>s should have a color assigned. The color will be representing using RGB in <code>colorRgb: int[]</code>. We should also have the ability to choose whether the <code>Obstacle</code> is visible which will be in a field <code>isVisible: boolean</code>. Invisible <code>Obstacle</code>'s allow for trigger zones where some action can trigger if some collision occurs. For example when the ball leaves the screen we could put trigger zones outside the field to reset the game. With this in mind, the last field in an <code>Obstacle</code> should be a <code>trigger: CollisionEventHandler</code> where <code>CollisionEventHandler</code> is an interface whose only method requires that the <code>Entity</code> and its <code>Collider</code> that cause the collision event to occur be passed. Additionally, it should extend <code>Serializable</code>.</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">interface</span> <span class="hljs-title">CollisionEventHandler</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Serializable</span> </span>{
+    <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">handleCollision</span><span class="hljs-params">(Entity other, Collider otherCollider)</span></span>;
+}
+</div></code></pre>
+<p>Whenever a developer creates an <code>Obstacle</code>, a <code>CollisionEventHandler</code> can be passed to allow for customizable game logic.</p>
+<p>Setters and getters for all the fields should be made. However, special care is taken for the constructor.</p>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-title">Obstacle</span><span class="hljs-params">(
+    String name, 
+    Collider[] hitZones, 
+    <span class="hljs-keyword">int</span>[] colorRgb, 
+    <span class="hljs-keyword">boolean</span> isVisible, 
+    CollisionEventHandler trigger
+)</span> </span>{
+    <span class="hljs-keyword">this</span>.id = name;
+    <span class="hljs-keyword">this</span>.position = <span class="hljs-keyword">new</span> Vec2d(<span class="hljs-number">0</span>, <span class="hljs-number">0</span>);
+    <span class="hljs-keyword">this</span>.velocity = <span class="hljs-keyword">new</span> Vec2d(<span class="hljs-number">0</span>, <span class="hljs-number">0</span>);
+    <span class="hljs-keyword">this</span>.colliders = <span class="hljs-keyword">new</span> ArrayList&lt;&gt;();
+    colliders.addAll(Arrays.asList(hitZones));
+
+    <span class="hljs-keyword">this</span>.colorRgb = colorRgb;
+    <span class="hljs-keyword">this</span>.isVisible = isVisible;
+    <span class="hljs-keyword">this</span>.trigger = trigger;
+}
+</div></code></pre>
+<p>Recall that <code>Obstacle</code> extends <code>Entity</code> so the fields of <code>Entity</code> should be populated. The code displayed above is self-explanatory, but attention should be focused on the fact that the <code>position</code> is initialized to <code>(0, 0)</code>. This position was arbitrarily chosen as it is not clear what should be the position if the <code>Obstacle</code> is composed of multiple &quot;zones&quot;.</p>
+<p>We should also override the <code>setPosition</code> method in <code>Entity</code> as setting the <code>position</code> field alone does not actually move the <code>Obstacle</code>. The reason is that the <code>Collider</code>s need to move whenever the position is changed. Because the <code>position</code> was arbitrarily chosen to be <code>(0, 0)</code>, we need to understand what it means to update an <code>Obstacle</code>'s position. Ideally we would want the colliders forming the <code>Obstacle</code> to maintain their positions relative to each other. Therefore whenever <code>setPosition</code> is called on the <code>Obstacle</code>, we need to compute a <code>displacement</code> that represents how much we need to move each <code>Collider</code> to give the illusion of the <code>Obstacle</code> having its position changed. The <code>displacement</code> is simply the difference between the given <code>position</code> passed to <code>setPosition</code> and the <code>Obstacle</code>'s current position. With this <code>displacement</code> we just change the position of each <code>Collider</code> in <code>colliders</code> by this <code>displacement.</code></p>
+<pre class="hljs"><code><div><span class="hljs-meta">@Override</span>
+<span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">setPosition</span><span class="hljs-params">(Vec2d position)</span> </span>{
+    Vec2d displacement = position.sub(<span class="hljs-keyword">this</span>.position);
+    <span class="hljs-keyword">super</span>.setPosition(position);
+
+    <span class="hljs-keyword">for</span> (Collider collider : <span class="hljs-keyword">this</span>.colliders) {
+        collider.setPosition(
+                collider.getPosition().add(displacement)
+        );
+    }
+}
+</div></code></pre>
+<p><code>Entity</code> also has an abstract <code>render</code> method which means we must define how to render an <code>Obstacle</code>. This is mechanically straightforward to do. We simply iterate through <code>colliders</code> and draw a rectangle if the <code>Collider</code> is a <code>RectangleCollider</code> and draw a circle if the <code>Collider</code> is a <code>CircleCollider</code>. The particularities of JavaFX drawing are explored in the code below. Note that if <code>isVisible</code> is <code>false</code>, then no rendering should take place.</p>
+<p><strong>From this point on, we will impose that all spatial quantities in <code>Entity</code> assume that the coordinate system of the screen space is based on the unit square. All temporal units are assumed to be seconds.</strong></p>
+<p>The unit square screen space means the top left corner is <code>(0, 0)</code>, the top right corner is <code>(1, 0)</code>, the bottom left corner is <code>(0, 1)</code>, and the bottom right corner is <code>(1, 1)</code>. This design choice was made to decouple the rendering from the peculiarities of different screen resolutions and different window sizes.</p>
+<p>This unit square coordinate system is why during rendering quantities are multiplied by the <code>Canvas</code>'s width and height for quantities relating to horizontal and vertical distances, respectively.</p>
+<pre class="hljs"><code><div><span class="hljs-meta">@Override</span>
+<span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">render</span><span class="hljs-params">(Canvas canvas)</span> </span>{
+    <span class="hljs-keyword">if</span> (!isVisible) {
+        <span class="hljs-keyword">return</span>;
+    }
+
+    GraphicsContext ctx = canvas.getGraphicsContext2D();
+    ctx.setFill(Color.rgb(colorRgb[<span class="hljs-number">0</span>], colorRgb[<span class="hljs-number">1</span>], colorRgb[<span class="hljs-number">2</span>]));
+    <span class="hljs-keyword">for</span> (Collider collider : <span class="hljs-keyword">this</span>.colliders) {
+        <span class="hljs-keyword">if</span> (collider <span class="hljs-keyword">instanceof</span> RectangleCollider) {
+            RectangleCollider rectangle = (RectangleCollider) collider;
+            Vec2d[] verticesAndBasis = rectangle.computeVerticesAndBasis();
+            ctx.fillPolygon(
+                    <span class="hljs-keyword">new</span> <span class="hljs-keyword">double</span>[]{
+                        verticesAndBasis[<span class="hljs-number">0</span>].getX() * canvas.getWidth(),
+                        verticesAndBasis[<span class="hljs-number">1</span>].getX() * canvas.getWidth(),
+                        verticesAndBasis[<span class="hljs-number">2</span>].getX() * canvas.getWidth(),
+                        verticesAndBasis[<span class="hljs-number">3</span>].getX() * canvas.getWidth(),
+                    },
+                    <span class="hljs-keyword">new</span> <span class="hljs-keyword">double</span>[]{
+                        verticesAndBasis[<span class="hljs-number">0</span>].getY() * canvas.getHeight(),
+                        verticesAndBasis[<span class="hljs-number">1</span>].getY() * canvas.getHeight(),
+                        verticesAndBasis[<span class="hljs-number">2</span>].getY() * canvas.getHeight(),
+                        verticesAndBasis[<span class="hljs-number">3</span>].getY() * canvas.getHeight(),
+                    },
+                    <span class="hljs-number">4</span>
+            );
+        } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (collider <span class="hljs-keyword">instanceof</span> CircleCollider) {
+            CircleCollider circle = (CircleCollider) collider;
+            <span class="hljs-keyword">double</span> centerX = circle.getCenter().getX();
+            <span class="hljs-keyword">double</span> centerY = circle.getCenter().getY();
+            <span class="hljs-keyword">double</span> r = circle.getRadius();
+            ctx.fillOval(
+                    (centerX - r) * canvas.getWidth(),
+                    (centerY - r) * canvas.getHeight(),
+                    <span class="hljs-number">2</span>*r * canvas.getWidth(),
+                    <span class="hljs-number">2</span>*r * canvas.getHeight()
+            );
+        }
+    }
+}
+</div></code></pre>
+<p>Finally, <code>Entity</code> has <code>onCollision</code> as abstract. As stated before, whenever a collision with the <code>Obstacle</code> is detected, this method will be invoked. What to do during a collision event is up to the developer so will we will simply pass the parameters of <code>onCollision</code> to <code>trigger.handleCollision</code> as such</p>
+<pre class="hljs"><code><div><span class="hljs-meta">@Override</span>
+<span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">onCollision</span><span class="hljs-params">(Entity other, Collider otherCollider)</span> </span>{
+    <span class="hljs-keyword">if</span> (trigger != <span class="hljs-keyword">null</span>) {
+        trigger.handleCollision(other, otherCollider);
+    }
+}
+</div></code></pre>
+<p>Note that a developer may choose to not pass a <code>CollisionEventHandler</code>. In which case, we simply do nothing when a collision occurs.</p>
+<h3 id="the-player-entity">The Player Entity</h3>
+<p>The player is a rectangular paddle. For the <code>Player</code> class which also extends <code>Entity</code>, it is sensible to have a <code>RectangularCollider</code> called <code>collider</code> as one of the fields. This <code>Collider</code> will also parameterize the player's width and height. We would also like the <code>Player</code> to have a property <code>moveSpeed: double</code> that dictates how fast the player moves. For example if <code>moveSpeed = 0.3</code>, then that implies that the player can move 30% of the screen in 1 second. We also should have a field <code>direction: int</code> which takes on the values <code>{-1, 0, 1}</code>. The value of direction determines if the <code>Player</code> is currently moving in the positive direction associate with it which we will call <code>positiveDirection: Vec2d</code>. Recall that <code>Player</code>s may be on the top/bottom or left/right sides of the screen so the positive direction will be down and right, respectively. Next we need to consider the keys that move the player. The fields <code>directionKeyPositive: int</code> and <code>directionKeyNegative: int</code> should be in <code>Player</code> and are the key codes on the keyboard associated with positive and negative movement. Finally, there needs to be a field <code>lastContactFreePosition: Vec2d</code> which will be used to revert the <code>Player</code> back to a position that is hopefully collision free.</p>
+<p>Setters and getters should be made only for <code>moveSpeed</code> and <code>direction</code> as the other fields are &quot;internal fields&quot; that should not be exposed to the outside world.</p>
+<p>Making the constructor is slightly less straightforward as we need to take into account the fields of <code>Entity</code>. In any event, the code below is self-explanatory and merely fills in the fields mentioned above and the fields in <code>Entity</code>. It should be noted that we are assuming that <code>Player</code>s created are initialized to in a collision free state. When creating the <code>RectangleCollider</code> for the <code>Player</code>, we also need to add this collider to <code>colliders</code> in <code>Entity</code>. Otherwise, the <code>Player</code> would effectively have no colliders in the eyes of the engine.</p>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-title">Player</span><span class="hljs-params">(
+        String name,
+        Vec2d position,
+        <span class="hljs-keyword">double</span> width,
+        <span class="hljs-keyword">double</span> height,
+        Vec2d positiveDirection,
+        <span class="hljs-keyword">int</span> directionKeyPositive,
+        <span class="hljs-keyword">int</span> directionKeyNegative,
+        <span class="hljs-keyword">double</span> moveSpeed
+)</span> </span>{
+    <span class="hljs-comment">// Fill in Entity attributes</span>
+    <span class="hljs-keyword">this</span>.id = name;
+    <span class="hljs-keyword">this</span>.position = position;
+    <span class="hljs-keyword">this</span>.velocity = <span class="hljs-keyword">new</span> Vec2d(<span class="hljs-number">0</span>, <span class="hljs-number">0</span>);
+
+    <span class="hljs-keyword">this</span>.collider = <span class="hljs-keyword">new</span> RectangleCollider(position, width, height, <span class="hljs-number">0</span>);
+    <span class="hljs-keyword">this</span>.colliders = <span class="hljs-keyword">new</span> ArrayList&lt;&gt;();
+    <span class="hljs-keyword">this</span>.colliders.add(collider);
+
+    <span class="hljs-comment">// Fill in Player fields</span>
+    direction = <span class="hljs-number">0</span>;
+    <span class="hljs-keyword">this</span>.positiveDirection = positiveDirection;
+    <span class="hljs-keyword">this</span>.directionKeyPositive = directionKeyPositive;
+    <span class="hljs-keyword">this</span>.directionKeyNegative = directionKeyNegative;
+    <span class="hljs-keyword">this</span>.moveSpeed = moveSpeed;
+    lastContactFreePosition = position;
+}
+</div></code></pre>
+<p>Just like the <code>Obstacle</code> class, we need to override the <code>setPosition</code> method in <code>Entity</code> so that the <code>RectangleCollider</code> in <code>Player</code> can &quot;track&quot; the <code>Player</code> as it has its position updated. First, whenever the position is updated, we will update <code>lastContactFreePosition</code> to be the current position <em>before</em> we update the <code>position</code>. Then we modify <code>position</code> to the position passed, and then we update the position of the <code>RectangleCollider</code>.</p>
+<pre class="hljs"><code><div><span class="hljs-meta">@Override</span>
+<span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">setPosition</span><span class="hljs-params">(Vec2d position)</span> </span>{
+    lastContactFreePosition = <span class="hljs-keyword">this</span>.position;
+    <span class="hljs-keyword">super</span>.setPosition(position);
+    <span class="hljs-comment">// Update the collider's position</span>
+    collider.setPosition(position);
+}
+</div></code></pre>
+<p>The <code>render</code> method from <code>Entity</code> is not particularly interesting. We simply draw a rectangle wherever the player is.</p>
+<pre class="hljs"><code><div><span class="hljs-meta">@Override</span>
+<span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">render</span><span class="hljs-params">(Canvas canvas)</span> </span>{
+    GraphicsContext ctx = canvas.getGraphicsContext2D();
+    <span class="hljs-keyword">double</span> canvasWidth = canvas.getWidth();
+    <span class="hljs-keyword">double</span> canvasHeight = canvas.getHeight();
+
+    ctx.setFill(Color.RED);
+    ctx.fillRect(
+            collider.getOrigin().getX() * canvasWidth,
+            collider.getOrigin().getY() * canvasHeight,
+            collider.getWidth() * canvasWidth,
+            collider.getHeight() * canvasHeight
+    );
+}
+</div></code></pre>
+<p>The <code>onCollision</code> method from <code>Entity</code> also is not very exciting. Essentially, if a collision is detected, we will revert the <code>Player</code>'s position back to its last contact free location, making sure that <code>lastContactFreeLocation</code> truly is a location that is contact free. Recall that <code>setPosition</code> will update the <code>lastContactFreeLocation</code>, but if a collision occurred, we most certainly do not want to assert that <code>lastContactFreeLocation</code> is the location the <code>Player</code> is currently in which is causing a collision with another <code>Entity</code>.</p>
+<pre class="hljs"><code><div><span class="hljs-meta">@Override</span>
+<span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">onCollision</span><span class="hljs-params">(Entity other, Collider otherCollider)</span> </span>{
+    setPosition(lastContactFreePosition);
+    lastContactFreePosition = <span class="hljs-keyword">this</span>.position;
+}
+</div></code></pre>
+<p>As a convenience, we will make the following methods <code>setDirectionKeyPress</code> and <code>setDirectionKeyRelease</code>. Both of these methods take a <code>keyCode: int</code> and change the direction of the <code>Player</code> depending on the key pressed.</p>
+<p>For <code>setDirectionKeyPress</code>, if the key code matches <code>directionKeyPositive</code> then we set the <code>direction</code> to <code>+1</code>. If the key code matches <code>directionKeyNegative</code> then we set the <code>direction</code> to <code>-1</code>.</p>
+<pre class="hljs"><code><div><span class="hljs-comment">/**
+ * Sets the direction of the player based on the key pressed
+ * <span class="hljs-doctag">@param</span> keyCode the key pressed
+ */</span>
+<span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">setDirectionKeyPress</span><span class="hljs-params">(<span class="hljs-keyword">int</span> keyCode)</span> </span>{
+    <span class="hljs-keyword">if</span> (keyCode == directionKeyPositive) {
+        setDirection(<span class="hljs-number">1</span>);
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (keyCode == directionKeyNegative) {
+        setDirection(-<span class="hljs-number">1</span>);
+    }
+}
+</div></code></pre>
+<p>For <code>setDirectionKeyRelease</code>, if the key released matches the direction the <code>Player</code> is currently moving in, then we want to set the <code>Player</code>'s <code>direction</code> to <code>0</code>.</p>
+<pre class="hljs"><code><div><span class="hljs-comment">/**
+ * Sets the direction of the player based on the key released
+ * <span class="hljs-doctag">@param</span> keyCode the key released
+ */</span>
+<span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">setDirectionKeyRelease</span><span class="hljs-params">(<span class="hljs-keyword">int</span> keyCode)</span> </span>{
+    <span class="hljs-comment">// If the key released matches the direction being moved in, stay still</span>
+    <span class="hljs-keyword">if</span> (
+        (keyCode == directionKeyPositive &amp;&amp; direction == <span class="hljs-number">1</span>) ||
+        (keyCode == directionKeyNegative &amp;&amp; direction == -<span class="hljs-number">1</span>)
+    ) {
+        setDirection(<span class="hljs-number">0</span>);
+    }
+}
+</div></code></pre>
+<p>We are not quite finished yet. We need to modify the <code>setDirection</code> method. Such that whenever the direction is set, the <code>Player</code>'s velocity is also altered. We simply just change <code>velocity</code> to $(\mathtt{direction} \cdot \mathtt{moveSpeed}) \cdot \mathtt{positiveDirection}$.</p>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">setDirection</span><span class="hljs-params">(<span class="hljs-keyword">int</span> direction)</span> </span>{
+    <span class="hljs-keyword">this</span>.direction = direction;
+    <span class="hljs-keyword">this</span>.velocity = positiveDirection.scale(direction * moveSpeed);
+}
+</div></code></pre>
+<h3 id="the-ball-entity">The Ball Entity</h3>
+<p>Like the <code>Player</code> class, the <code>Ball</code> will be characterized by its <code>Collider</code> <code>collider: BallCollider</code> which holds both the <code>Ball</code>'s position and radius. The <code>Ball</code> class will also have a <code>lastContactFreeLocation: Vec2d</code> to help revert the <code>Ball</code> back to a collision free state. The constructor is shown below and it follows the same format as the previous two entities.</p>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-title">Ball</span><span class="hljs-params">(
+    String name,
+    Vec2d centerPosition,
+    <span class="hljs-keyword">double</span> radius
+)</span> </span>{
+    <span class="hljs-keyword">this</span>.id = name;
+    <span class="hljs-keyword">this</span>.position = centerPosition;
+    <span class="hljs-keyword">this</span>.velocity = <span class="hljs-keyword">new</span> Vec2d(<span class="hljs-number">0</span>, <span class="hljs-number">0</span>);
+    <span class="hljs-keyword">this</span>.colliders = <span class="hljs-keyword">new</span> ArrayList&lt;&gt;();
+
+    <span class="hljs-keyword">this</span>.collider = <span class="hljs-keyword">new</span> CircleCollider(centerPosition, radius);
+    <span class="hljs-keyword">this</span>.colliders.add(collider);
+
+    lastContactFreePosition = centerPosition;
+}
+</div></code></pre>
+<p>For the exact same reasons as <code>Player</code> the <code>setPosition</code> method from <code>Entity</code> needs to be updated to</p>
+<pre class="hljs"><code><div><span class="hljs-meta">@Override</span>
+<span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">setPosition</span><span class="hljs-params">(Vec2d position)</span> </span>{
+    lastContactFreePosition = <span class="hljs-keyword">this</span>.position;
+    <span class="hljs-keyword">super</span>.setPosition(position);
+    collider.setPosition(position);
+}
+</div></code></pre>
+<p>The <code>render</code> method from <code>Entity</code> is also not particularly interesting. We simply use the <code>CircleCollider</code> to determine where to render the <code>Ball</code> to the <code>Canvas</code>.</p>
+<pre class="hljs"><code><div><span class="hljs-meta">@Override</span>
+<span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">render</span><span class="hljs-params">(Canvas canvas)</span> </span>{
+    GraphicsContext ctx = canvas.getGraphicsContext2D();
+
+    ctx.setFill(Color.BLUE);
+    <span class="hljs-keyword">double</span> centerX = collider.getCenter().getX();
+    <span class="hljs-keyword">double</span> centerY = collider.getCenter().getY();
+    <span class="hljs-keyword">double</span> r = collider.getRadius();
+    ctx.fillOval(
+            (centerX - r) * canvas.getWidth(),
+            (centerY - r) * canvas.getHeight(),
+            (<span class="hljs-number">2</span>*r) * canvas.getWidth(),
+            (<span class="hljs-number">2</span>*r) * canvas.getHeight()
+    );
+}
+</div></code></pre>
+<p>The interesting portion of this class is when the <code>Ball</code> collides with another object. What the ball does when the <code>CircleCollider</code> comes into contact with a <code>RectangleCollider</code> is going to be different from the case when the <code>CircleCollider</code> comes into contact with a <code>CircleCollider</code>. Therefore we break up the <code>onCollision</code> code into cases.</p>
+<p><img src="document_assets/reflection.png" alt="Reflection"></p>
+<p>When the <code>Ball</code> collides with another object, we want it to reflect off the surface. In general, if we know the surface normal and the velocity of the object, we can compute the new velocity of the object after reflecting off the surface. Refer to the figure above. Let $\mathbf{v}$ denote the velocity of the object and let $\mathbf{n}$ be the surface normal. The new velocity, which is the reflection is simply</p>
+<p>$$
+\mathbf{v} - 2 \cdot \text{proj}_{\mathbf{n}}{\mathbf{v}}
+$$</p>
+<p>In the case of the <code>Ball</code> colliding with a <code>RectangleCollider</code>, let $\mathbf{c}$ be the point on the rectangle closest to the <code>Ball</code>'s center $\mathbf{x}$. We will say that the normal vector is $\mathbf{n} = \mathbf{c} - \mathbf{x}$. However if the <code>Ball</code> with center $\mathbf{x}$ collides with a <code>CircleCollider</code> with center $\mathbf{c}$, we will say that the normal vector is $\mathbf{n} = \mathbf{c} - \mathbf{x}$.</p>
+<p>We can now compute the reflection and then update the velocity. See the code below as a reference for how such a calculation might be implemented.</p>
+<pre class="hljs"><code><div><span class="hljs-meta">@Override</span>
+<span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">onCollision</span><span class="hljs-params">(Entity other, Collider otherCollider)</span> </span>{
+    setPosition(lastContactFreePosition);
+    lastContactFreePosition = <span class="hljs-keyword">this</span>.position;
+    <span class="hljs-keyword">if</span> (otherCollider <span class="hljs-keyword">instanceof</span> RectangleCollider) {
+        RectangleCollider rectangleCollider = 
+                        (RectangleCollider) otherCollider;
+        Vec2d contactPoint = rectangleCollider
+                            .findClosestPoint(collider.getCenter());
+        Vec2d normal = collider.getCenter().sub(contactPoint);
+
+        <span class="hljs-keyword">this</span>.velocity = <span class="hljs-keyword">this</span>.velocity
+                        .add(
+                            <span class="hljs-keyword">this</span>.velocity.projectOnto(normal).scale(-<span class="hljs-number">2.0</span>)
+                        );
+    } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (otherCollider <span class="hljs-keyword">instanceof</span> CircleCollider) {
+        CircleCollider otherCircleCollider = 
+                        (CircleCollider) otherCollider;
+        Vec2d normal = collider
+                        .getCenter()
+                        .sub(otherCircleCollider.getCenter());
+        <span class="hljs-keyword">this</span>.velocity = <span class="hljs-keyword">this</span>.velocity
+                        .add(
+                            <span class="hljs-keyword">this</span>.velocity.projectOnto(normal).scale(-<span class="hljs-number">2.0</span>)
+                        );
+    }
+}
+</div></code></pre>
+<p>Diagrammatically what we have developed in this section is shown below</p>
+<p><img src="document_assets/entity_uml_img.png" alt="Entity UML Diagram"></p>
 <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 <script>
