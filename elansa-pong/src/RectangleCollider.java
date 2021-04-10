@@ -31,6 +31,31 @@ public class RectangleCollider implements Collider {
         };
     }
 
+    /**
+     * Finds the closest point on the rectangle to a given point
+     * @param point the point to find the closest point to
+     * @return the closest point to the given point
+     */
+    public Vec2d findClosestPoint(Vec2d point) {
+        Vec2d[] thisVerticesAndBasis = this.computeVerticesAndBasis();
+        Vec2d basis1 = thisVerticesAndBasis[4];
+        Vec2d basis2 = thisVerticesAndBasis[5];
+        Vec2d displacement = point.sub(thisVerticesAndBasis[0]);
+
+        // Decompose displacement in terms of basis1 and basis2
+        // displacement = c1*basis1 + c2*basis2
+        double c1 = basis1.dot(displacement);
+        double c2 = basis2.dot(displacement);
+
+        // Clamp c1 to [0, width] and clamp c2 to [0, height]
+        c1 = Math.max(0, c1);
+        c2 = Math.max(0, c2);
+        c1 = Math.min(width, c1);
+        c2 = Math.min(height, c2);
+
+        return basis1.scale(c1).add(basis2.scale(c2)).add(thisVerticesAndBasis[0]);
+    }
+
     @Override
     public boolean collide(Collider other) {
         if (other instanceof RectangleCollider) {
@@ -73,26 +98,7 @@ public class RectangleCollider implements Collider {
             }
         } else if (other instanceof CircleCollider) {
             CircleCollider otherCircle = (CircleCollider) other;
-            Vec2d[] thisVerticesAndBasis = this.computeVerticesAndBasis();
-            Vec2d basis1 = thisVerticesAndBasis[4];
-            Vec2d basis2 = thisVerticesAndBasis[5];
-            Vec2d displacement = otherCircle.getCenter().sub(thisVerticesAndBasis[0]);
-
-            // Decompose displacement in terms of basis1 and basis2
-            // displacement = c1*basis1 + c2*basis2
-            double c1 = basis1.dot(displacement);
-            double c2 = basis2.dot(displacement);
-
-            // If displacement has a "negative component", convert it to 0
-            c1 = Math.max(0, c1);
-            c2 = Math.max(0, c2);
-            // If displacement has a component greater than the rectangle's bound, covert to
-            // the rectangle bounds
-            c1 = Math.min(width, c1);
-            c2 = Math.min(height, c2);
-
-            Vec2d closestPoint = basis1.scale(c1).add(basis2.scale(c2)).add(thisVerticesAndBasis[0]);
-
+            Vec2d closestPoint = findClosestPoint(otherCircle.getCenter());
             return closestPoint.sub(otherCircle.getCenter()).mag() <= otherCircle.getRadius();
         }
         return false;
