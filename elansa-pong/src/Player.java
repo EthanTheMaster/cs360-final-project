@@ -66,10 +66,8 @@ public class Player extends Entity {
 
     @Override
     public void onCollision(Entity other, Collider otherCollider) {
-        if (other instanceof Obstacle) {
-            setPosition(lastContactFreePosition);
-            lastContactFreePosition = this.position;
-        }
+        setPosition(lastContactFreePosition);
+        lastContactFreePosition = this.position;
     }
 
     @Override

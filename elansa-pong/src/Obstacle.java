@@ -66,7 +66,12 @@ public class Obstacle extends Entity {
                 double centerX = circle.getCenter().getX();
                 double centerY = circle.getCenter().getY();
                 double r = circle.getRadius();
-                ctx.fillOval(centerX - r, centerY - r, 2*r, 2*r);
+                ctx.fillOval(
+                        (centerX - r) * canvas.getWidth(),
+                        (centerY - r) * canvas.getHeight(),
+                        2*r * canvas.getWidth(),
+                        2*r * canvas.getHeight()
+                );
             }
         }
     }
