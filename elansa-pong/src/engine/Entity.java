@@ -1,3 +1,5 @@
+package engine;
+
 import javafx.scene.canvas.Canvas;
 
 import java.io.Serializable;

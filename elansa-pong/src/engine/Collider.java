@@ -1,3 +1,5 @@
+package engine;
+
 import java.io.Serializable;
 
 public interface Collider extends Serializable {

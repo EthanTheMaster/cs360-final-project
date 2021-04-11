@@ -1,3 +1,9 @@
+package game;
+
+import engine.Collider;
+import engine.Entity;
+import engine.RectangleCollider;
+import engine.Vec2d;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
@@ -30,7 +36,7 @@ public class Player extends Entity {
             int directionKeyNegative,
             double moveSpeed
     ) {
-        // Fill in Entity attributes
+        // Fill in engine.Entity attributes
         this.id = name;
         this.position = position;
         this.velocity = new Vec2d(0, 0);
@@ -39,7 +45,7 @@ public class Player extends Entity {
         this.colliders = new ArrayList<>();
         this.colliders.add(collider);
 
-        // Fill in Player fields
+        // Fill in game.Player fields
         direction = 0;
         this.positiveDirection = positiveDirection;
         this.directionKeyPositive = directionKeyPositive;
@@ -76,6 +82,32 @@ public class Player extends Entity {
         super.setPosition(position);
         // Update the collider's position
         collider.setPosition(position);
+    }
+
+    public void setDirectionAutomatically(ArrayList<Ball> balls) {
+        Vec2d[] verticesAndBasis = collider.computeVerticesAndBasis();
+        Vec2d paddleCenter = verticesAndBasis[0]
+                .add(verticesAndBasis[1])
+                .add(verticesAndBasis[2])
+                .add(verticesAndBasis[3])
+                .scale(0.25);
+        balls.stream()
+            .min((b1, b2) -> {
+                double d1 = b1.getPosition().sub(paddleCenter).mag();
+                double d2 = b2.getPosition().sub(paddleCenter).mag();
+                return Double.compare(d1, d2);
+            })
+            .ifPresent(b -> {
+                double signedMagnitude = b.getPosition().sub(paddleCenter).dot(positiveDirection);
+                double paddleSpan = Math.max(collider.getHeight(), collider.getWidth()) / 2;
+                if (Math.abs(signedMagnitude) < paddleSpan) {
+                     setDirection(0);
+                } else if (signedMagnitude < 0) {
+                    setDirection(-1);
+                } else {
+                    setDirection(1);
+                }
+            });
     }
 
     public void setDirectionKeyPress(int keyCode) {

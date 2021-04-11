@@ -1,3 +1,5 @@
+package engine;
+
 public class RectangleCollider implements Collider {
     private Vec2d origin;
     private double width;

@@ -1,7 +1,9 @@
+package game;
+
+import engine.*;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.input.KeyEvent;
-import javafx.scene.paint.Color;
 
 import java.util.ArrayList;
 
@@ -44,7 +46,7 @@ public class GameSceneTest implements GameScene {
     );
 
     private final Ball ball = new Ball(
-            "Ball",
+            "game.Ball",
             new Vec2d(0.5, 0.5),
             0.02
     );
