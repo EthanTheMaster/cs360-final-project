@@ -807,6 +807,63 @@ public void setDirection(int direction) {
 }
 ```
 
+Because we might want an automated player in the future. We will create a method `setDirectionAutomatically` which takes a list of `Ball`s called `balls: [Ball]` and set the direction so that the player can bounce the closest ball. Let $\mathbf{u}$ be the `positiveDirection` vector, $\mathbf{b}_x$ be the position of the closest `Ball` in `balls`, $\mathbf{x}$ be the `Player`'s center, and $\mathbf{v} = \mathbf{b}_x - \mathbf{x}$. We can compute $\mathbf{x}$ by averaging the vertices of the `Player`'s `RectangleCollider`. We will also define player's paddle span to be $S = \max{\left({\mathtt{collider.width}, \mathtt{collider.height}}\right)}$.
+
+![Automated Player Movement](document_assets/automated_player.png)
+
+Recall that `positiveDirection` has unit length so 
+
+$$
+\mathbf{u} \cdot \mathbf{v} = \lVert \mathbf{u} \rVert \lVert \mathbf{v} \rVert \cos{\theta} = \lVert \mathbf{v} \rVert \cos{\theta}
+$$
+
+From both geometry and linear algebra, the above equation implies that $\mathbf{u} \cdot \mathbf{v}$ is the (signed) distance the ball is from the paddle's center in the direction of $\mathbf{u}$. 
+
+If the absolute value of this quantity is less that $\frac{S}{2}$, then the paddle does not need to move because the ball is in the "span" of the paddle and thus can be reached. However if the paddle cannot reach the ball, we need to move the paddle.
+
+The direction we should move the paddle is completely dictated by the sign of the $\cos{\theta}$ term which matches the sign of $\mathbf{u} \cdot \mathbf{v}$ as $\lVert \mathbf{v} \rVert$ is positive. If $\mathbf{u} \cdot \mathbf{v}$ is positive, the paddle needs to move in the positive direction, and move in the negative direction otherwise. See the figure above to visualize this argument.
+
+```java
+/**
+ * Sets the direction of the player automatically based on the closest
+ * ball
+ * @param balls a list of balls currently in play
+ */
+public void setDirectionAutomatically(ArrayList<Ball> balls) {
+    Vec2d[] verticesAndBasis = collider.computeVerticesAndBasis();
+    // Find the paddle's center by averaging the vertices
+    Vec2d paddleCenter = verticesAndBasis[0]
+            .add(verticesAndBasis[1])
+            .add(verticesAndBasis[2])
+            .add(verticesAndBasis[3])
+            .scale(0.25);
+    // Find the closest ball using a Comparator
+    balls.stream()
+        .min((b1, b2) -> {
+            double d1 = b1.getPosition().sub(paddleCenter).mag();
+            double d2 = b2.getPosition().sub(paddleCenter).mag();
+            return Double.compare(d1, d2);
+        })
+        .ifPresent(b -> {
+            double signedMagnitude = b.getPosition()
+                    .sub(paddleCenter)
+                    .dot(positiveDirection);
+            double paddleSpan = Math.max(
+                            collider.getHeight(), 
+                            collider.getWidth()
+                        ) / 2;
+            if (Math.abs(signedMagnitude) < paddleSpan) {
+                // The ball is in the paddle's span so do not move
+                setDirection(0);
+            } else if (signedMagnitude < 0) {
+                setDirection(-1);
+            } else {
+                setDirection(1);
+            }
+        });
+}
+```
+
 ### The Ball Entity
 Like the `Player` class, the `Ball` will be characterized by its `Collider` `collider: BallCollider` which holds both the `Ball`'s position and radius. The `Ball` class will also have a `lastContactFreeLocation: Vec2d` to help revert the `Ball` back to a collision free state. The constructor is shown below and it follows the same format as the previous two entities.
 
@@ -907,6 +964,8 @@ Diagrammatically what we have developed in this section is shown below
 
 ![Entity UML Diagram](document_assets/entity_uml_img.png)
 
+## Implementing Pong with the Engine
+
 <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 <script>
@@ -920,5 +979,4 @@ window.MathJax = {
   }
 };
 </script>
-
 
