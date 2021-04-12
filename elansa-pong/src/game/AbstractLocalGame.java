@@ -48,4 +48,8 @@ public abstract class AbstractLocalGame implements GameScene {
     public abstract void activatePlayer(int playerNumber, boolean automated);
     public abstract void deactivatePlayer(int playerNumber);
     public abstract void resetGame();
+
+    public void setGameEventHandler(GameEventHandler gameEventHandler) {
+        this.gameEventHandler = gameEventHandler;
+    }
 }

@@ -35,6 +35,7 @@ public class BouncyBalls extends AbstractLocalGame {
     double bouncyBallRadius = 0.07;
 
     int[] lives = {2, 2, 2, 2};
+    int numActivePlayers = 4;
 
     Obstacle block02 = new Obstacle(
     "Block02",
@@ -297,9 +298,20 @@ public class BouncyBalls extends AbstractLocalGame {
         lives[playerNumber] -= 1;
         if (lives[playerNumber] == 0) {
             deactivatePlayer(playerNumber);
+            numActivePlayers -= 1;
+
+            gameEventHandler.onPlayerElimination(playerNumber);
+        }
+        gameEventHandler.onLifeChange(lives, activePlayers);
+        // Winner has been found pick only player with nonzero lives
+        if (numActivePlayers == 1) {
+            for (int i = 0; i < lives.length; i++) {
+                if (lives[i] != 0) {
+                    gameEventHandler.onWinnerDetermined(i);
+                }
+            }
         }
         resetGame();
-        System.out.println(Arrays.toString(lives));
     }
 
     @Override
