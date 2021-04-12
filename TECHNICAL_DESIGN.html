@@ -1024,6 +1024,54 @@ $$</p>
     <span class="hljs-keyword">this</span>.velocity = positiveDirection.scale(direction * moveSpeed);
 }
 </div></code></pre>
+<p>Because we might want an automated player in the future. We will create a method <code>setDirectionAutomatically</code> which takes a list of <code>Ball</code>s called <code>balls: [Ball]</code> and set the direction so that the player can bounce the closest ball. Let $\mathbf{u}$ be the <code>positiveDirection</code> vector, $\mathbf{b}_x$ be the position of the closest <code>Ball</code> in <code>balls</code>, $\mathbf{x}$ be the <code>Player</code>'s center, and $\mathbf{v} = \mathbf{b}_x - \mathbf{x}$. We can compute $\mathbf{x}$ by averaging the vertices of the <code>Player</code>'s <code>RectangleCollider</code>. We will also define player's paddle span to be $S = \max{\left({\mathtt{collider.width}, \mathtt{collider.height}}\right)}$.</p>
+<p><img src="document_assets/automated_player.png" alt="Automated Player Movement"></p>
+<p>Recall that <code>positiveDirection</code> has unit length so</p>
+<p>$$
+\mathbf{u} \cdot \mathbf{v} = \lVert \mathbf{u} \rVert \lVert \mathbf{v} \rVert \cos{\theta} = \lVert \mathbf{v} \rVert \cos{\theta}
+$$</p>
+<p>From both geometry and linear algebra, the above equation implies that $\mathbf{u} \cdot \mathbf{v}$ is the (signed) distance the ball is from the paddle's center in the direction of $\mathbf{u}$.</p>
+<p>If the absolute value of this quantity is less that $\frac{S}{2}$, then the paddle does not need to move because the ball is in the &quot;span&quot; of the paddle and thus can be reached. However if the paddle cannot reach the ball, we need to move the paddle.</p>
+<p>The direction we should move the paddle is completely dictated by the sign of the $\cos{\theta}$ term which matches the sign of $\mathbf{u} \cdot \mathbf{v}$ as $\lVert \mathbf{v} \rVert$ is positive. If $\mathbf{u} \cdot \mathbf{v}$ is positive, the paddle needs to move in the positive direction, and move in the negative direction otherwise. See the figure above to visualize this argument.</p>
+<pre class="hljs"><code><div><span class="hljs-comment">/**
+ * Sets the direction of the player automatically based on the closest
+ * ball
+ * <span class="hljs-doctag">@param</span> balls a list of balls currently in play
+ */</span>
+<span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">setDirectionAutomatically</span><span class="hljs-params">(ArrayList&lt;Ball&gt; balls)</span> </span>{
+    Vec2d[] verticesAndBasis = collider.computeVerticesAndBasis();
+    <span class="hljs-comment">// Find the paddle's center by averaging the vertices</span>
+    Vec2d paddleCenter = verticesAndBasis[<span class="hljs-number">0</span>]
+            .add(verticesAndBasis[<span class="hljs-number">1</span>])
+            .add(verticesAndBasis[<span class="hljs-number">2</span>])
+            .add(verticesAndBasis[<span class="hljs-number">3</span>])
+            .scale(<span class="hljs-number">0.25</span>);
+    <span class="hljs-comment">// Find the closest ball using a Comparator</span>
+    balls.stream()
+        .min((b1, b2) -&gt; {
+            <span class="hljs-keyword">double</span> d1 = b1.getPosition().sub(paddleCenter).mag();
+            <span class="hljs-keyword">double</span> d2 = b2.getPosition().sub(paddleCenter).mag();
+            <span class="hljs-keyword">return</span> Double.compare(d1, d2);
+        })
+        .ifPresent(b -&gt; {
+            <span class="hljs-keyword">double</span> signedMagnitude = b.getPosition()
+                    .sub(paddleCenter)
+                    .dot(positiveDirection);
+            <span class="hljs-keyword">double</span> paddleSpan = Math.max(
+                            collider.getHeight(), 
+                            collider.getWidth()
+                        ) / <span class="hljs-number">2</span>;
+            <span class="hljs-keyword">if</span> (Math.abs(signedMagnitude) &lt; paddleSpan) {
+                <span class="hljs-comment">// The ball is in the paddle's span so do not move</span>
+                setDirection(<span class="hljs-number">0</span>);
+            } <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> (signedMagnitude &lt; <span class="hljs-number">0</span>) {
+                setDirection(-<span class="hljs-number">1</span>);
+            } <span class="hljs-keyword">else</span> {
+                setDirection(<span class="hljs-number">1</span>);
+            }
+        });
+}
+</div></code></pre>
 <h3 id="the-ball-entity">The Ball Entity</h3>
 <p>Like the <code>Player</code> class, the <code>Ball</code> will be characterized by its <code>Collider</code> <code>collider: BallCollider</code> which holds both the <code>Ball</code>'s position and radius. The <code>Ball</code> class will also have a <code>lastContactFreeLocation: Vec2d</code> to help revert the <code>Ball</code> back to a collision free state. The constructor is shown below and it follows the same format as the previous two entities.</p>
 <pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-title">Ball</span><span class="hljs-params">(
@@ -1105,6 +1153,7 @@ $$</p>
 </div></code></pre>
 <p>Diagrammatically what we have developed in this section is shown below</p>
 <p><img src="document_assets/entity_uml_img.png" alt="Entity UML Diagram"></p>
+<h2 id="implementing-pong-with-the-engine">Implementing Pong with the Engine</h2>
 <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 <script>
