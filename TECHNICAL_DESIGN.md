@@ -17,7 +17,6 @@ where the "game state" is any sort of abstract representation of the game in the
 When the game responds to user input, it could for example update the velocities of the players. During the update phase, the game could then move all the players and ball in the direction of their velocity or update them in accordance with physical laws. Finally, with the updated state, the game is rendered to the screen, and the process starts over. This overview forms the basis of an interactive video game.
 
 With the game loop covered at a high level, we will make an interface called `GameScene` that captures each stage of the game loop so that it can inevitably be driven by a sort of looping construction. In the `GameScene`, there will be methods that handle keyboard events as follow
-
 ```java
 /**
  * The method called when it is detected that a key on the keyboard 
@@ -32,11 +31,9 @@ void onKeyPressed(KeyEvent e);
  */
 void onKeyReleased(KeyEvent e);
 ```
-
 The `KeyEvent` object is from `javafx.scene.input.KeyEvent`, and it is no coincidence that the method signatures matches that of JavaFX's key event listeners. Whenever JavaFX detects a key press, we will pass that key event to these methods for the game scenes implementing `GameScene` to handle. Implementing these methods allow for custom game logic to execute in response to keyboard events.
 
 Next, any game scene implementing `GameScene` needs to specify how the game state should be updated. Thus we will include the following method in the interface 
-
 ```java
 /**
  * The method called to progress the game state
@@ -45,11 +42,9 @@ Next, any game scene implementing `GameScene` needs to specify how the game stat
  */ 
 void updateState(long currentTime);
 ```
-
 This method will be called by the game loop to advance the game state which typically involves updating the position of game objects. We need to to pass in a `currentTime: long` to decouple the game updates from the computer hardware's power. Consider two computers with two different CPUs. On the faster CPU the game loop will execute at a higher frequency than the slower computer which means the faster CPU will update the game more often. If implemented without care, the game may run at a higher speed on the faster computer giving an inconsistent experience across different hardwares. To remedy this issue, every time the game is updated, the time in nanoseconds must be supplied so that the game can determine the proper way to update the state so that the game state is tied to time that has passed and not hardware power. Thus even if one were to play the game on different computers, the experience will feel relatively similar as one's experience with time does not often change. 
 
 Finally the `GameScene` needs a way to render the scene which means the following method must implemented
-
 ```java
 /**
  * The method called to render the game scene to a canvas
@@ -57,11 +52,9 @@ Finally the `GameScene` needs a way to render the scene which means the followin
  */ 
 void render(Canvas canvas);
 ```
-
 The `Canvas` object is from `javafx.scene.canvas.Canvas` and any sort of custom render code for the `GameScene` should perform all draw operations on this `Canvas`.
 
 Finally, as a convenience method `GameScene` should have a default method called `generateRenderableComponent(int, int) -> Canvas`. This method essentially creates a `Canvas` object for us and configures it to handle keyboard inputs. It will take two integers which parametrizes the returned `Canvas`'s width and height, respectively. A `Canvas` will first be created and its key pressed handler will be attached to the `onKeyPressed` method in `GameScene`. Similarly, the key released handler will be attached to the `onKeyReleased` method in `GameScene`. Thus all keyboard events on the `Canvas` will be dispatched to class implementing `GameScene`. However in the current state, the `Canvas` will not accept keyboard inputs as it is not "focused." The `Canvas` can received keyboard inputs by notifying JavaFX that the `Canvas` can be "focused" on. Then we just request the focus be on the `Canvas` and return the `Canvas` object. In code the method would resemble
-
 ```java
 /**
  * Creates a Canvas object configured to be compatible with the GameScene
@@ -78,11 +71,9 @@ default Canvas generateRenderableComponent(int width, int height) {
     return canvas;
 }
 ```
-
 Finally, `GameScene` should extend `Serializable`. We will impose this constraint so that later in the development of the game, we have the capability of saving game scenes on the drive and even transmit game scenes over the network.
 
 In whole the interface should look as such
-
 ```java
 public interface GameScene extends Serializable {
     void updateState(long currentTime);
@@ -101,9 +92,7 @@ public interface GameScene extends Serializable {
     }
 }
 ```
-
 The `GameScene` sets the foundation for the different phases a game goes through. We now need to drive it with a looping construct. Rather than use a naive `while` loop, we will make use of the `AnimationTimer` in JavaFX so as to not lock up the main thread of our program with the game loop. We will make a class called `GameLoop` which extends `AnimationTimer`. In order to extend `AnimationTimer` the class must override the `handle` method which is called every time the `AnimationTimer` "ticks" which occurs at a fairly high frequency. First, however, the class `GameLoop` has two fields: a `gameScene: GameScene` and a `canvas: Canvas`. The `GameScene` informs the `GameLoop` what scene it needs to drive, and the `Canvas` informs the `GameLoop` where the rendering should take place. The canonical constructor should be used to fill these fields. As for the `handle` from `AnimationTimer`, we simply need to call `updateState` and then `render` on `gameScene` every time the `AnimationTimer` pulses/ticks. In code the `handle` function would resemble
-
 ```java
 public class GameLoop extends AnimationTimer {
     private GameScene gameScene;
@@ -120,7 +109,6 @@ public class GameLoop extends AnimationTimer {
     }
 }
 ```
-
 Now, whenever we would like to render a `GameScene`, we simply instantiate an instance of some `GameScene`, create a `Canvas` from it using `generateRenderableComponent`, pass both objects into the `GameLoop`, and run the `start` method on the `AnimationTimer` which `GameLoop` inherits.
 
 The work up to this point is represented diagrammatically below.
@@ -131,7 +119,6 @@ The work up to this point is represented diagrammatically below.
 To make computation easier we will develop a helper class called `Vec2d`. This class represents 2 dimensional vectors and has methods that can execute common vector operations. In this class there are 2 fields, both of which are doubles: `x` and `y`. For brevity assume that the canonical constructor is used and setters and getters for `x` and `y` are implemented. Mathematically, an instance of `Vec2d` will encode the vector $\left\langle x, y \right\rangle$. This class should also implement `Serializable`.
 
 First, we will define a method `scale` which takes a `double` `c` and returns a new vector that is a scaled version of the current vector. To do this, we simply multiply each component of the vector by `c`.
-
 ```java
 /**
  * Scales a vector by a constant multiple
@@ -142,9 +129,7 @@ public Vec2d scale(double c) {
     return new Vec2d(x*c, y*c);
 }
 ```
-
 We will also define a method `add` which adds two vectors and returns the result. It takes a `Vec2d` called `other`, and adds `this` with `other`, component-wise.
-
 ```java
 /**
  * Adds the current vector the another vector
@@ -157,9 +142,7 @@ public Vec2d add(Vec2d other) {
     );
 }
 ```
-
 Similarly subtraction is defined but the method is called `sub` and the components are subtracted as opposed to added.
-
 ```java
 /**
  * Computes the difference between the current vector with another vector
@@ -172,9 +155,7 @@ public Vec2d sub(Vec2d other) {
     );
 }
 ```
-
 It will also be convenient to compute dot products, so we will also create a method `dot` that takes a `Vec2d` called `other` and returns a `double`. Given two vectors $\left\langle x, y \right\rangle$ and $\left\langle x', y' \right\rangle$ the dot product is $x \cdot x' + y \cdot y'$.
-
 ```java
 /**
   * Computes the dot product between the current vector and another vector
@@ -185,9 +166,7 @@ public double dot(Vec2d other) {
     return this.x * other.x + this.y * other.y;
 }
 ```
-
 The method `mag` should simply return a `double` representing the magnitude or length of the current vector. From linear algebra the magnitude of vector $\mathbf{v}$ is $\sqrt{\mathbf{v} \cdot \mathbf{v}}$ which conveniently can be implementing using `dot`.
-
 ```java
 /**
  * Computes the length of the current vector
@@ -197,13 +176,11 @@ public double mag() {
     return Math.sqrt(this.dot(this));
 }
 ```
-
 We will also implement a method `projectOnto` which takes another `Vec2d` and returns a `Vec2d` representing the projection. Thus `a.projectOnto(b)` in mathematical notation would be $\text{proj}_\mathbf{b}\mathbf{a}$. Using linear algebra, this can be computed with 
 
 $$
     \text{proj}_{\mathbf{b}}\mathbf{a} = \left(\mathbf{a} \cdot \frac{\mathbf{b}}{\lVert \mathbf{b} \rVert}\right) \mathbf{b}
 $$
-
 ```java
 /**
  * Computes the projection of the current vector onto another vector
@@ -215,7 +192,6 @@ public Vec2d projectOnto(Vec2d other) {
     return unit.scale(unit.dot(this));
 }
 ```
-
 Finally, the last method to be implemented is `rotate` which takes a `double` called `angle` in radians. It returns a `Vec2d` that is the rotation of the current vector, rotated about the origin by `angle`. This action can be done using a rotation matrix
 
 $$
@@ -232,8 +208,6 @@ x\sin\theta+y\cos\theta
 $$
 
 For more information see [https://en.wikipedia.org/wiki/Rotation_matrix](https://en.wikipedia.org/wiki/Rotation_matrix) which is where the above formula came from.
-
-
 ```java
 /**
  * Rotates the current vector about the origin
@@ -246,11 +220,9 @@ public Vec2d rotate(double angle) {
     return new Vec2d(x*c - y*s, x*s + y*c);
 }
 ```
-
 Now with two dimensional vectors implemented, we will use mathematical notation for vectors when convenient with the understanding that they can easily converted into an instance of `Vec2d`.
 
 To detect collisions between different types of shapes, we will make an interface `Collider` with the following form.
-
 ```java
 public interface Collider extends Serializable {
     /**
@@ -312,7 +284,6 @@ $$
 $$
 
 The code would resemble 
-
 ```java
 /**
  * Computes the vertices of the rotated rectangle along and also returns 
@@ -335,7 +306,6 @@ public Vec2d[] computeVerticesAndBasis() {
     };
 }
 ```
-
 Before we implement `collide` from `Collider` for `RectangleCollider`, we should introduce another collider: `CircleCollider`. A `CircleCollider` is parameterized by the following fields: `center: Vec2d` and `radius: double`. Both of these fields should have setters and getters, and the canonical constructor should be used to populate these fields. Furthermore `getPosition` and `setPosition` from `Collider` should access and mutate `center` as the position. 
 
 We now introduce the collision detection for `RectangleCollider`. The `collide` method from the `Collider` interface has as parameter an `other` object of type `Collider`. Thus it is sensible to break up the collision detection depending on the type `Collider` of collider passed.
@@ -364,7 +334,6 @@ $$
 $$
 
 then `v` is in the bound of `this`'s region and we can return true. We now do the same analysis but interchange the roles of `this` and `other` to check whether `this`'s vertices lie within `other`'s bound. The analysis is omitted and the code below should clear any confusion.
-
 ```java
 public boolean collide(Collider other) {
     if (other instanceof RectangleCollider) {
@@ -421,7 +390,6 @@ public boolean collide(Collider other) {
     return false;
 }
 ```
-
 We have handled rectangle on rectangle collisions. We shall now focus our attention on rectangle on circle collisions. While still in `RectangleCollider`, we handle the case in which `other: Collider` is now in fact a `CircleCollider`.
 
 ![Closest Point](document_assets/rect_closest.png).
@@ -465,13 +433,11 @@ public Vec2d findClosestPoint(Vec2d point) {
     return basis1.scale(c1).add(basis2.scale(c2)).add(thisVerticesAndBasis[0]);
 }
 ```
-
 Now that we have a way of finding the closest point, to determine rectangle on circle collision, we simply have to find the closest point on the rectangle to the circle and check if the distance from the circle's center to the closest point is less than or equal to the circle's radius. Diagrammatically the figure below argues the reasoning for this collision check.
 
 ![Rectangle on Circle Collision](document_assets/rect_circ.png)
 
 In code the collision check would be as follow
-
 ```java
 public boolean collide(Collider other) {
     if (other instanceof RectangleCollider) {
@@ -487,7 +453,6 @@ public boolean collide(Collider other) {
     return false;
 }
 ```
-
 With the `RectangleCollider`'s implementation finished, the `CircleCollider` should also be finished. Like in the `RectangleCollider`, the `collide` method takes an `other: Collider` object and we should execute different logic depending on the type of `Collider` `other` is. If `other` is a `CircleCollider`, determining a collision is straightforward. Simply compute the distance between the two centers. If that distance is less than or equal to the sum of the radii, then a collision occurred. See the figure below to visualize this argument.
 
 ![Circle Circle Collision](document_assets/circ_circ.png)
@@ -495,7 +460,6 @@ With the `RectangleCollider`'s implementation finished, the `CircleCollider` sho
 If, however, `other` is a `RectangleCollider` then simply call `other.collide(this)` as circle on rectangle collisions are the same as rectangle on circle collisions. 
 
 In code `collide` for the `CircleCollider` would be
-
 ```java
 public boolean collide(Collider other) {
     if (other instanceof CircleCollider) {
@@ -509,7 +473,6 @@ public boolean collide(Collider other) {
     return false;
 }
 ```
-
 The diagram below shows the components of the physics engine.
 
 ![Physics UML Diagram](document_assets/physics_uml_img.png)
@@ -520,7 +483,6 @@ Up to this point, we can implement the key objects in the game pong. There are o
 To unify all game objects under the same framework, we will create an abstract `Entity` class. This class will have the following protected fields that children can inherit: `id: String`, `position: Vec2d`, `velocity: Vec2d`, and `colliders: ArrayList<Collider>`. These fields will characterize an `Entity` and provide enough information for the dynamics of an entity. Setters and getters for all these fields should be made.
 
 Subclasses of `Entity` should have some way to be rendered to the screen. Thus `Entity` will have an abstract method `render` which takes a `Canvas` object. 
-
 ```java
 /**
  * Renders the entity to a canvas
@@ -528,9 +490,7 @@ Subclasses of `Entity` should have some way to be rendered to the screen. Thus `
  */
 public abstract void render(Canvas canvas);
 ```
-
 Furthermore, when an `Entity` collides with another `Entity` the entities should be alerted of this fact. Thus there needs to be an abstract `onCollision` method with two parameters: `other: Entity` and `otherCollider: Collider`. The first parameter is the `Entity` that collided with the current `Entity`. The second parameter is the `Collider` on the other `Entity` that triggered the collision event. 
-
 ```java
 /**
  * The method invoked when this entity has collided with another entity
@@ -540,9 +500,7 @@ Furthermore, when an `Entity` collides with another `Entity` the entities should
  */
 public abstract void onCollision(Entity other, Collider otherCollider);
 ```
-
 Every `Entity` has associated with it a list of `Collider`s in the `colliders` field. Thus it would be helpful to have a method `collidesWith` that takes another `Entity` called `other` and returns `null` if the two entities did not collide but returns two `Collider`s if a collision did take place where the two `Collider`s are the colliders that caused a collision. Checking for a collision between two entities is straightforward. We simply check every pair of `Collider`s in both entities and run the `collide` method to check if the pair collides.
-
 ```java
 /**
  * Checks if this entity collides with another entity
@@ -564,24 +522,20 @@ public Collider[] collidesWith(Entity other) {
     return null;
 }
 ```
-
 Finally, `Entity` should implement `Serializable` so that they can be saved to disk or transmitted over a network.
 
 ### The Obstacle Entity
 An `Obstacle` class extending the `Entity` class will essentially be the `Entity` form of composite `Collider`s. The idea is that we would like to combine `Collider`s into one shape which can be deemed as an `Entity` for the game engine to actuate. 
 
 `Obstacle`s should have a color assigned. The color will be representing using RGB in `colorRgb: int[]`. We should also have the ability to choose whether the `Obstacle` is visible which will be in a field `isVisible: boolean`. Invisible `Obstacle`'s allow for trigger zones where some action can trigger if some collision occurs. For example when the ball leaves the screen we could put trigger zones outside the field to reset the game. With this in mind, the last field in an `Obstacle` should be a `trigger: CollisionEventHandler` where `CollisionEventHandler` is an interface whose only method requires that the `Entity` and its `Collider` that cause the collision event to occur be passed. Additionally, it should extend `Serializable`.
-
 ```java
 public interface CollisionEventHandler extends Serializable {
     void handleCollision(Entity other, Collider otherCollider);
 }
 ```
-
 Whenever a developer creates an `Obstacle`, a `CollisionEventHandler` can be passed to allow for customizable game logic.
 
 Setters and getters for all the fields should be made. However, special care is taken for the constructor. 
-
 ```java
 public Obstacle(
     String name, 
@@ -601,11 +555,9 @@ public Obstacle(
     this.trigger = trigger;
 }
 ```
-
 Recall that `Obstacle` extends `Entity` so the fields of `Entity` should be populated. The code displayed above is self-explanatory, but attention should be focused on the fact that the `position` is initialized to `(0, 0)`. This position was arbitrarily chosen as it is not clear what should be the position if the `Obstacle` is composed of multiple "zones".
 
 We should also override the `setPosition` method in `Entity` as setting the `position` field alone does not actually move the `Obstacle`. The reason is that the `Collider`s need to move whenever the position is changed. Because the `position` was arbitrarily chosen to be `(0, 0)`, we need to understand what it means to update an `Obstacle`'s position. Ideally we would want the colliders forming the `Obstacle` to maintain their positions relative to each other. Therefore whenever `setPosition` is called on the `Obstacle`, we need to compute a `displacement` that represents how much we need to move each `Collider` to give the illusion of the `Obstacle` having its position changed. The `displacement` is simply the difference between the given `position` passed to `setPosition` and the `Obstacle`'s current position. With this `displacement` we just change the position of each `Collider` in `colliders` by this `displacement.`
-
 ```java
 @Override
 public void setPosition(Vec2d position) {
@@ -619,7 +571,6 @@ public void setPosition(Vec2d position) {
     }
 }
 ```
-
 `Entity` also has an abstract `render` method which means we must define how to render an `Obstacle`. This is mechanically straightforward to do. We simply iterate through `colliders` and draw a rectangle if the `Collider` is a `RectangleCollider` and draw a circle if the `Collider` is a `CircleCollider`. The particularities of JavaFX drawing are explored in the code below. Note that if `isVisible` is `false`, then no rendering should take place. 
 
 **From this point on, we will impose that all spatial quantities in `Entity` assume that the coordinate system of the screen space is based on the unit square. All temporal units are assumed to be seconds.**
@@ -627,7 +578,6 @@ public void setPosition(Vec2d position) {
 The unit square screen space means the top left corner is `(0, 0)`, the top right corner is `(1, 0)`, the bottom left corner is `(0, 1)`, and the bottom right corner is `(1, 1)`. This design choice was made to decouple the rendering from the peculiarities of different screen resolutions and different window sizes.
 
 This unit square coordinate system is why during rendering quantities are multiplied by the `Canvas`'s width and height for quantities relating to horizontal and vertical distances, respectively.
-
 ```java
 @Override
 public void render(Canvas canvas) {
@@ -671,9 +621,7 @@ public void render(Canvas canvas) {
     }
 }
 ```
-
 Finally, `Entity` has `onCollision` as abstract. As stated before, whenever a collision with the `Obstacle` is detected, this method will be invoked. What to do during a collision event is up to the developer so will we will simply pass the parameters of `onCollision` to `trigger.handleCollision` as such
-
 ```java
 @Override
 public void onCollision(Entity other, Collider otherCollider) {
@@ -682,7 +630,6 @@ public void onCollision(Entity other, Collider otherCollider) {
     }
 }
 ```
-
 Note that a developer may choose to not pass a `CollisionEventHandler`. In which case, we simply do nothing when a collision occurs.
 
 ### The Player Entity
@@ -720,9 +667,7 @@ public Player(
     lastContactFreePosition = position;
 }
 ```
-
 Just like the `Obstacle` class, we need to override the `setPosition` method in `Entity` so that the `RectangleCollider` in `Player` can "track" the `Player` as it has its position updated. First, whenever the position is updated, we will update `lastContactFreePosition` to be the current position _before_ we update the `position`. Then we modify `position` to the position passed, and then we update the position of the `RectangleCollider`.
-
 ```java
 @Override
 public void setPosition(Vec2d position) {
@@ -732,9 +677,7 @@ public void setPosition(Vec2d position) {
     collider.setPosition(position);
 }
 ```
-
 The `render` method from `Entity` is not particularly interesting. We simply draw a rectangle wherever the player is.
-
 ```java
 @Override
 public void render(Canvas canvas) {
@@ -751,9 +694,7 @@ public void render(Canvas canvas) {
     );
 }
 ```
-
 The `onCollision` method from `Entity` also is not very exciting. Essentially, if a collision is detected, we will revert the `Player`'s position back to its last contact free location, making sure that `lastContactFreeLocation` truly is a location that is contact free. Recall that `setPosition` will update the `lastContactFreeLocation`, but if a collision occurred, we most certainly do not want to assert that `lastContactFreeLocation` is the location the `Player` is currently in which is causing a collision with another `Entity`. 
-
 ```java
 @Override
 public void onCollision(Entity other, Collider otherCollider) {
@@ -761,11 +702,9 @@ public void onCollision(Entity other, Collider otherCollider) {
     lastContactFreePosition = this.position;
 }
 ```
-
 As a convenience, we will make the following methods `setDirectionKeyPress` and `setDirectionKeyRelease`. Both of these methods take a `keyCode: int` and change the direction of the `Player` depending on the key pressed.
 
 For `setDirectionKeyPress`, if the key code matches `directionKeyPositive` then we set the `direction` to `+1`. If the key code matches `directionKeyNegative` then we set the `direction` to `-1`.
-
 ```java
 /**
  * Sets the direction of the player based on the key pressed
@@ -779,9 +718,7 @@ public void setDirectionKeyPress(int keyCode) {
     }
 }
 ```
-
 For `setDirectionKeyRelease`, if the key released matches the direction the `Player` is currently moving in, then we want to set the `Player`'s `direction` to `0`.
-
 ```java
 /**
  * Sets the direction of the player based on the key released
@@ -797,16 +734,13 @@ public void setDirectionKeyRelease(int keyCode) {
     }
 }
 ```
-
 We are not quite finished yet. We need to modify the `setDirection` method. Such that whenever the direction is set, the `Player`'s velocity is also altered. We simply just change `velocity` to $(\mathtt{direction} \cdot \mathtt{moveSpeed}) \cdot \mathtt{positiveDirection}$.
-
 ```java
 public void setDirection(int direction) {
     this.direction = direction;
     this.velocity = positiveDirection.scale(direction * moveSpeed);
 }
 ```
-
 Because we might want an automated player in the future. We will create a method `setDirectionAutomatically` which takes a list of `Ball`s called `balls: [Ball]` and set the direction so that the player can bounce the closest ball. Let $\mathbf{u}$ be the `positiveDirection` vector, $\mathbf{b}_x$ be the position of the closest `Ball` in `balls`, $\mathbf{x}$ be the `Player`'s center, and $\mathbf{v} = \mathbf{b}_x - \mathbf{x}$. We can compute $\mathbf{x}$ by averaging the vertices of the `Player`'s `RectangleCollider`. We will also define player's paddle span to be $S = \max{\left({\mathtt{collider.width}, \mathtt{collider.height}}\right)}$.
 
 ![Automated Player Movement](document_assets/automated_player.png)
@@ -822,7 +756,6 @@ From both geometry and linear algebra, the above equation implies that $\mathbf{
 If the absolute value of this quantity is less that $\frac{S}{2}$, then the paddle does not need to move because the ball is in the "span" of the paddle and thus can be reached. However if the paddle cannot reach the ball, we need to move the paddle.
 
 The direction we should move the paddle is completely dictated by the sign of the $\cos{\theta}$ term which matches the sign of $\mathbf{u} \cdot \mathbf{v}$ as $\lVert \mathbf{v} \rVert$ is positive. If $\mathbf{u} \cdot \mathbf{v}$ is positive, the paddle needs to move in the positive direction, and move in the negative direction otherwise. See the figure above to visualize this argument.
-
 ```java
 /**
  * Sets the direction of the player automatically based on the closest
@@ -863,10 +796,8 @@ public void setDirectionAutomatically(ArrayList<Ball> balls) {
         });
 }
 ```
-
 ### The Ball Entity
 Like the `Player` class, the `Ball` will be characterized by its `Collider` `collider: BallCollider` which holds both the `Ball`'s position and radius. The `Ball` class will also have a `lastContactFreeLocation: Vec2d` to help revert the `Ball` back to a collision free state. The constructor is shown below and it follows the same format as the previous two entities.
-
 ```java
 public Ball(
     String name,
@@ -884,9 +815,7 @@ public Ball(
     lastContactFreePosition = centerPosition;
 }
 ```
-
 For the exact same reasons as `Player` the `setPosition` method from `Entity` needs to be updated to 
-
 ```java
 @Override
 public void setPosition(Vec2d position) {
@@ -895,9 +824,7 @@ public void setPosition(Vec2d position) {
     collider.setPosition(position);
 }
 ```
-
 The `render` method from `Entity` is also not particularly interesting. We simply use the `CircleCollider` to determine where to render the `Ball` to the `Canvas`.
-
 ```java
 @Override
 public void render(Canvas canvas) {
@@ -915,7 +842,6 @@ public void render(Canvas canvas) {
     );
 }
 ```
-
 The interesting portion of this class is when the `Ball` collides with another object. What the ball does when the `CircleCollider` comes into contact with a `RectangleCollider` is going to be different from the case when the `CircleCollider` comes into contact with a `CircleCollider`. Therefore we break up the `onCollision` code into cases.
 
 ![Reflection](document_assets/reflection.png)
@@ -929,7 +855,6 @@ $$
 In the case of the `Ball` colliding with a `RectangleCollider`, let $\mathbf{c}$ be the point on the rectangle closest to the `Ball`'s center $\mathbf{x}$. We will say that the normal vector is $\mathbf{n} = \mathbf{c} - \mathbf{x}$. However if the `Ball` with center $\mathbf{x}$ collides with a `CircleCollider` with center $\mathbf{c}$, we will say that the normal vector is $\mathbf{n} = \mathbf{c} - \mathbf{x}$. 
 
 We can now compute the reflection and then update the velocity. See the code below as a reference for how such a calculation might be implemented.
-
 ```java
 @Override
 public void onCollision(Entity other, Collider otherCollider) {
@@ -959,12 +884,174 @@ public void onCollision(Entity other, Collider otherCollider) {
     }
 }
 ```
-
 Diagrammatically what we have developed in this section is shown below
 
 ![Entity UML Diagram](document_assets/entity_uml_img.png)
 
 ## Implementing Pong with the Engine
+To make generating different variants of pong seamless, we will first make a generalized framework that characterizes different variants of pong. The class we will make is called `AbstractLocalGame` which implements `GameScene` and is considered `abstract`. 
+
+In every game of pong, there will be a list of entities that the engine will maintain. We further subdivide this list into two categories: static and dynamic entities. Static entities are entities that do not move as the game progresses and will allow for "caching" in a networked game. Static entities primarily include the environment and trigger zones. Dynamic entities are entities that move and thus in a networked game should be part of every broadcasted update. Therefore we will need the following fields in this `AbstractLocalGame`.
+```java
+protected ArrayList<Entity> entities = new ArrayList<>();
+protected ArrayList<Entity> staticEntities = new ArrayList<>();
+protected ArrayList<Entity> dynamicEntities = new ArrayList<>();
+```
+All fields should be `protected` so that subclasses implementing this `AbstractLocalGame` can easily access these fields. We also initialize these lists to an empty list as by default a game has nothing in it.
+
+We also should have fields that maintain player states. Therefore it is sensible to have an array of `Player` objects that maintain the player states. Additionally we will need fields that encode which players are automated and which are still alive/active. Which players are automated and alive, can easily be made using a binary array where the `i`th element reveals information about the `i`th `Player`.
+```java
+protected Player[] players = new Player[4];
+protected boolean[] activePlayers = {false, false, false, false};
+protected boolean[] automatedPlayers = {false, false, false, false};
+```
+By default there are no players, and thus they are all non-active and non-automated.
+
+Next, there needs to be some mechanism through which key game events can be detected and acted on. Therefore we will create an interface `GameEventHandler` of the following form
+```java
+public interface GameEventHandler {
+    /**
+     * This method is invoked when a winner has been determined
+     * @param winner the player who won
+     */
+    void onWinnerDetermined(int winner);
+    /**
+     * This method is invoked when a player has been eliminated
+     * @param eliminatedPlayer the player who was eliminated
+     */
+    void onPlayerElimination(int eliminatedPlayer);
+    /**
+     * This method is invoked when there is a change in player's life
+     * @param newLives an array giving the ith player's lives
+     * @param activePlayers an array giving the ith player's alive
+     * status
+     */
+    void onLifeChange(int[] newLives, boolean[] activePlayers);
+}
+```
+More methods may be added for other noteworthy events but these will suffice.
+
+With the `GameEventHandler`, we should create a field `gameEventHandler: GameEventHandler` in the `AbstractLocalGame` so that subclasses may invoke methods on this handle to notify, for example, the user interface of events that just occurred. Additionally, a setter should be made for this field to give the caller of the game to listen on game events, and the default value of this `gameEventHandler` should have empty implementations for the methods in `GameEventHandler`.
+
+Finally, the methods of this abstract class is shown below and are fairly self-explanatory with respect to how they relate to the game.
+```java
+/**
+ * Implements the life deduction mechanism
+ * @param playerNumber the player to deduct a life from
+ */
+protected abstract void deductLife(int playerNumber);
+/**
+ * Updates the entities list after one has deleted or added new entities
+ */
+protected abstract void updateEntitiesList();
+/**
+ * Updates the game state when a player is determined to be alive
+ * @param playerNumber the player to be set as alive
+ * @param automated specifies whether the player should be controlled by 
+ * the computer
+ */
+public abstract void activatePlayer(int playerNumber, boolean automated);
+/**
+ * Updates the game state when a player is eliminated from the game
+ * @param playerName the player eliminated
+ */
+public abstract void deactivatePlayer(int playerNumber);
+/**
+ * Resets the game particularly after a life has been lost
+ */
+public abstract void resetGame();
+```
+At this point, the only task left to making a functional local game is to give a concrete implementation of this `AbstractLocalGame` and to display the game on a user interface. 
+
+The latter is fairly straightforward. Once simply takes the `Canvas` returned from `generateRenderableComponent` method, place it in a `Pane` which goes into a `Scene`, adding the `Scene` to the JavaFX stage, and running the `start` method on a `GameLoop` object made from an implementation of the `AbstractLocalGame`. The code below gives an example for how this might be implemented in JavaFX.
+```java
+
+public class TestApp extends Application {
+    @Override
+    public void start(Stage stage) throws Exception {
+        AbstractLocalGame gameScene = new CustomLocalGame();
+        gameScene.setGameEventHandler(new GameEventHandler() {
+            @Override
+            public void onWinnerDetermined(int winner) {
+                System.out.println("Winner is Player " + winner);
+                Platform.exit();
+            }
+
+            @Override
+            public void onPlayerElimination(int eliminatedPlayer) {
+                System.out.println(
+                    "Player " + 
+                    eliminatedPlayer + 
+                    " has been eliminated."
+                );
+            }
+
+            @Override
+            public void onLifeChange(
+                int[] newLives, 
+                boolean[] activePlayers
+            ) {
+                System.out.println(
+                    "The lives are now: " + 
+                    Arrays.toString(newLives)
+                );
+                System.out.println(
+                    "The players active are: " + 
+                    Arrays.toString(activePlayers)
+                );
+            }
+        });
+        gameScene.activatePlayer(0, false);
+        gameScene.activatePlayer(1, false);
+        gameScene.activatePlayer(2, false);
+        gameScene.activatePlayer(3, false);
+
+        Canvas canvas = gameScene.generateRenderableComponent(500, 500);
+        GameLoop timer = new GameLoop(gameScene, canvas);
+        timer.start();
+
+        Pane pane = new Pane();
+        pane.getChildren().addAll(canvas);
+
+        Scene scene = new Scene(pane);
+        stage.setScene(scene);
+        stage.setTitle("Test App");
+        stage.show();
+    }
+}
+```
+In the above code, we merely print out events that occur in the game as opposed to affecting the user interface. Additionally, the `CustomLocalGame` should be any class extending the `AbstractLocalGame`, and changing this value allows one to play on different maps as all maps should have `AbstractLocalGame` as a common base.
+
+## Points of Consideration When Implementing `AbstractLocalGame`
+* Make sure to call the methods in `gameEventHandler` when a notable event has occurred. In particular these methods should be invoked in the `deductLife` method.
+* Make a field `lastRecordedTime: Long = null` that is first populated on the first call to `updateState`. Every subsequent call to `updateState` should compute the "delta time" between the current time of the `updateState` call and the `lastRecordedTime`. The use of a "delta time" decouples the game updating from the computer's hardware speed.
+  * This "delta time" should be used to update all entities in the `entities` list by changing the positions in accordance with the delta time each entity's velocity. For example the loop below could be used to update the positions.
+  ```java
+    for (Entity entity : entities) {
+        entity.setPosition(
+            entity.getPosition().add(entity.getVelocity().scale(deltaTime))
+        );
+    }
+  ```
+* `updateState` should include a step to check for collisions. This can be done by checking every pair of entities in the `entities` list and verifying whether they collide. In the event of a collision, both entities should be alerted. The code below elaborates on this point.
+```java
+for (int i = 0; i < entities.size()-1; i++) {
+    for (int j = i+1; j < entities.size(); j++) {
+        Entity entity1 = entities.get(i);
+        Entity entity2 = entities.get(j);
+        Collider[] colliders = entity1.collidesWith(entity2);
+        if (colliders != null) {
+            entity1.onCollision(entity2, colliders[1]);
+            entity2.onCollision(entity1, colliders[0]);
+        }
+    }
+}
+```
+* `updateState` should for call the `setDirectionAutomatically` for all automated players.
+
+* Player activation and deactivation should alter `staticEntities` and `dynamicEntities` in a suitable way and call `updateEntitiesList`. The game will certainly be different upon the addition and deletion of players.
+
+* There should be a "cooldown" period prior to the start of the game and after a game reset, so that players have an opportunity to get ready. A cool down period also gives an opportunity to present information on screen.
 
 <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>

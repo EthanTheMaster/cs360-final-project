@@ -1154,6 +1154,163 @@ $$</p>
 <p>Diagrammatically what we have developed in this section is shown below</p>
 <p><img src="document_assets/entity_uml_img.png" alt="Entity UML Diagram"></p>
 <h2 id="implementing-pong-with-the-engine">Implementing Pong with the Engine</h2>
+<p>To make generating different variants of pong seamless, we will first make a generalized framework that characterizes different variants of pong. The class we will make is called <code>AbstractLocalGame</code> which implements <code>GameScene</code> and is considered <code>abstract</code>.</p>
+<p>In every game of pong, there will be a list of entities that the engine will maintain. We further subdivide this list into two categories: static and dynamic entities. Static entities are entities that do not move as the game progresses and will allow for &quot;caching&quot; in a networked game. Static entities primarily include the environment and trigger zones. Dynamic entities are entities that move and thus in a networked game should be part of every broadcasted update. Therefore we will need the following fields in this <code>AbstractLocalGame</code>.</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">protected</span> ArrayList&lt;Entity&gt; entities = <span class="hljs-keyword">new</span> ArrayList&lt;&gt;();
+<span class="hljs-keyword">protected</span> ArrayList&lt;Entity&gt; staticEntities = <span class="hljs-keyword">new</span> ArrayList&lt;&gt;();
+<span class="hljs-keyword">protected</span> ArrayList&lt;Entity&gt; dynamicEntities = <span class="hljs-keyword">new</span> ArrayList&lt;&gt;();
+</div></code></pre>
+<p>All fields should be <code>protected</code> so that subclasses implementing this <code>AbstractLocalGame</code> can easily access these fields. We also initialize these lists to an empty list as by default a game has nothing in it.</p>
+<p>We also should have fields that maintain player states. Therefore it is sensible to have an array of <code>Player</code> objects that maintain the player states. Additionally we will need fields that encode which players are automated and which are still alive/active. Which players are automated and alive, can easily be made using a binary array where the <code>i</code>th element reveals information about the <code>i</code>th <code>Player</code>.</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">protected</span> Player[] players = <span class="hljs-keyword">new</span> Player[<span class="hljs-number">4</span>];
+<span class="hljs-keyword">protected</span> <span class="hljs-keyword">boolean</span>[] activePlayers = {<span class="hljs-keyword">false</span>, <span class="hljs-keyword">false</span>, <span class="hljs-keyword">false</span>, <span class="hljs-keyword">false</span>};
+<span class="hljs-keyword">protected</span> <span class="hljs-keyword">boolean</span>[] automatedPlayers = {<span class="hljs-keyword">false</span>, <span class="hljs-keyword">false</span>, <span class="hljs-keyword">false</span>, <span class="hljs-keyword">false</span>};
+</div></code></pre>
+<p>By default there are no players, and thus they are all non-active and non-automated.</p>
+<p>Next, there needs to be some mechanism through which key game events can be detected and acted on. Therefore we will create an interface <code>GameEventHandler</code> of the following form</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">interface</span> <span class="hljs-title">GameEventHandler</span> </span>{
+    <span class="hljs-comment">/**
+     * This method is invoked when a winner has been determined
+     * <span class="hljs-doctag">@param</span> winner the player who won
+     */</span>
+    <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">onWinnerDetermined</span><span class="hljs-params">(<span class="hljs-keyword">int</span> winner)</span></span>;
+    <span class="hljs-comment">/**
+     * This method is invoked when a player has been eliminated
+     * <span class="hljs-doctag">@param</span> eliminatedPlayer the player who was eliminated
+     */</span>
+    <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">onPlayerElimination</span><span class="hljs-params">(<span class="hljs-keyword">int</span> eliminatedPlayer)</span></span>;
+    <span class="hljs-comment">/**
+     * This method is invoked when there is a change in player's life
+     * <span class="hljs-doctag">@param</span> newLives an array giving the ith player's lives
+     * <span class="hljs-doctag">@param</span> activePlayers an array giving the ith player's alive
+     * status
+     */</span>
+    <span class="hljs-function"><span class="hljs-keyword">void</span> <span class="hljs-title">onLifeChange</span><span class="hljs-params">(<span class="hljs-keyword">int</span>[] newLives, <span class="hljs-keyword">boolean</span>[] activePlayers)</span></span>;
+}
+</div></code></pre>
+<p>More methods may be added for other noteworthy events but these will suffice.</p>
+<p>With the <code>GameEventHandler</code>, we should create a field <code>gameEventHandler: GameEventHandler</code> in the <code>AbstractLocalGame</code> so that subclasses may invoke methods on this handle to notify, for example, the user interface of events that just occurred. Additionally, a setter should be made for this field to give the caller of the game to listen on game events, and the default value of this <code>gameEventHandler</code> should have empty implementations for the methods in <code>GameEventHandler</code>.</p>
+<p>Finally, the methods of this abstract class is shown below and are fairly self-explanatory with respect to how they relate to the game.</p>
+<pre class="hljs"><code><div><span class="hljs-comment">/**
+ * Implements the life deduction mechanism
+ * <span class="hljs-doctag">@param</span> playerNumber the player to deduct a life from
+ */</span>
+<span class="hljs-function"><span class="hljs-keyword">protected</span> <span class="hljs-keyword">abstract</span> <span class="hljs-keyword">void</span> <span class="hljs-title">deductLife</span><span class="hljs-params">(<span class="hljs-keyword">int</span> playerNumber)</span></span>;
+<span class="hljs-comment">/**
+ * Updates the entities list after one has deleted or added new entities
+ */</span>
+<span class="hljs-function"><span class="hljs-keyword">protected</span> <span class="hljs-keyword">abstract</span> <span class="hljs-keyword">void</span> <span class="hljs-title">updateEntitiesList</span><span class="hljs-params">()</span></span>;
+<span class="hljs-comment">/**
+ * Updates the game state when a player is determined to be alive
+ * <span class="hljs-doctag">@param</span> playerNumber the player to be set as alive
+ * <span class="hljs-doctag">@param</span> automated specifies whether the player should be controlled by 
+ * the computer
+ */</span>
+<span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">abstract</span> <span class="hljs-keyword">void</span> <span class="hljs-title">activatePlayer</span><span class="hljs-params">(<span class="hljs-keyword">int</span> playerNumber, <span class="hljs-keyword">boolean</span> automated)</span></span>;
+<span class="hljs-comment">/**
+ * Updates the game state when a player is eliminated from the game
+ * <span class="hljs-doctag">@param</span> playerName the player eliminated
+ */</span>
+<span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">abstract</span> <span class="hljs-keyword">void</span> <span class="hljs-title">deactivatePlayer</span><span class="hljs-params">(<span class="hljs-keyword">int</span> playerNumber)</span></span>;
+<span class="hljs-comment">/**
+ * Resets the game particularly after a life has been lost
+ */</span>
+<span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">abstract</span> <span class="hljs-keyword">void</span> <span class="hljs-title">resetGame</span><span class="hljs-params">()</span></span>;
+</div></code></pre>
+<p>At this point, the only task left to making a functional local game is to give a concrete implementation of this <code>AbstractLocalGame</code> and to display the game on a user interface.</p>
+<p>The latter is fairly straightforward. Once simply takes the <code>Canvas</code> returned from <code>generateRenderableComponent</code> method, place it in a <code>Pane</code> which goes into a <code>Scene</code>, adding the <code>Scene</code> to the JavaFX stage, and running the <code>start</code> method on a <code>GameLoop</code> object made from an implementation of the <code>AbstractLocalGame</code>. The code below gives an example for how this might be implemented in JavaFX.</p>
+<pre class="hljs"><code><div>
+<span class="hljs-keyword">public</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">TestApp</span> <span class="hljs-keyword">extends</span> <span class="hljs-title">Application</span> </span>{
+    <span class="hljs-meta">@Override</span>
+    <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">start</span><span class="hljs-params">(Stage stage)</span> <span class="hljs-keyword">throws</span> Exception </span>{
+        AbstractLocalGame gameScene = <span class="hljs-keyword">new</span> CustomLocalGame();
+        gameScene.setGameEventHandler(<span class="hljs-keyword">new</span> GameEventHandler() {
+            <span class="hljs-meta">@Override</span>
+            <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">onWinnerDetermined</span><span class="hljs-params">(<span class="hljs-keyword">int</span> winner)</span> </span>{
+                System.out.println(<span class="hljs-string">"Winner is Player "</span> + winner);
+                Platform.exit();
+            }
+
+            <span class="hljs-meta">@Override</span>
+            <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">onPlayerElimination</span><span class="hljs-params">(<span class="hljs-keyword">int</span> eliminatedPlayer)</span> </span>{
+                System.out.println(
+                    <span class="hljs-string">"Player "</span> + 
+                    eliminatedPlayer + 
+                    <span class="hljs-string">" has been eliminated."</span>
+                );
+            }
+
+            <span class="hljs-meta">@Override</span>
+            <span class="hljs-function"><span class="hljs-keyword">public</span> <span class="hljs-keyword">void</span> <span class="hljs-title">onLifeChange</span><span class="hljs-params">(<span class="hljs-keyword">int</span>[] newLives, <span class="hljs-keyword">boolean</span>[] activePlayers)</span> </span>{
+                System.out.println(
+                    <span class="hljs-string">"The lives are now: "</span> + 
+                    Arrays.toString(newLives)
+                );
+                System.out.println(
+                    <span class="hljs-string">"The players active are: "</span> + 
+                    Arrays.toString(activePlayers)
+                );
+            }
+        });
+        gameScene.activatePlayer(<span class="hljs-number">0</span>, <span class="hljs-keyword">false</span>);
+        gameScene.activatePlayer(<span class="hljs-number">1</span>, <span class="hljs-keyword">false</span>);
+        gameScene.activatePlayer(<span class="hljs-number">2</span>, <span class="hljs-keyword">false</span>);
+        gameScene.activatePlayer(<span class="hljs-number">3</span>, <span class="hljs-keyword">false</span>);
+
+        Canvas canvas = gameScene.generateRenderableComponent(<span class="hljs-number">500</span>, <span class="hljs-number">500</span>);
+        GameLoop timer = <span class="hljs-keyword">new</span> GameLoop(gameScene, canvas);
+        timer.start();
+
+        Pane pane = <span class="hljs-keyword">new</span> Pane();
+        pane.getChildren().addAll(canvas);
+
+        Scene scene = <span class="hljs-keyword">new</span> Scene(pane);
+        stage.setScene(scene);
+        stage.setTitle(<span class="hljs-string">"Test App"</span>);
+        stage.show();
+    }
+}
+</div></code></pre>
+<p>In the above code, we merely print out events that occur in the game as opposed to affecting the user interface. Additionally, the <code>CustomLocalGame</code> should be any class extending the <code>AbstractLocalGame</code>, and changing this value allows one to play on different maps as all maps should have <code>AbstractLocalGame</code> as a common base.</p>
+<h2 id="points-of-consideration-when-implementing-abstractlocalgame">Points of Consideration When Implementing <code>AbstractLocalGame</code></h2>
+<ul>
+<li>Make sure to call the methods in <code>gameEventHandler</code> when a notable event has occurred. In particular these methods should be invoked in the <code>deductLife</code> method.</li>
+<li>Make a field <code>lastRecordedTime: Long = null</code> that is first populated on the first call to <code>updateState</code>. Every subsequent call to <code>updateState</code> should compute the &quot;delta time&quot; between the current time of the <code>updateState</code> call and the <code>lastRecordedTime</code>. The use of a &quot;delta time&quot; decouples the game updating from the computer's hardware speed.
+<ul>
+<li>This &quot;delta time&quot; should be used to update all entities in the <code>entities</code> list by changing the positions in accordance with the delta time each entity's velocity. For example the loop below could be used to update the positions.</li>
+</ul>
+<pre class="hljs"><code><div>  <span class="hljs-keyword">for</span> (Entity entity : entities) {
+      entity.setPosition(
+          entity.getPosition().add(entity.getVelocity().scale(deltaTime))
+      );
+  }
+</div></code></pre>
+</li>
+<li><code>updateState</code> should include a step to check for collisions. This can be done by checking every pair of entities in the <code>entities</code> list and verifying whether they collide. In the event of a collision, both entities should be alerted. The code below elaborates on this point.</li>
+</ul>
+<pre class="hljs"><code><div><span class="hljs-keyword">for</span> (<span class="hljs-keyword">int</span> i = <span class="hljs-number">0</span>; i &lt; entities.size()-<span class="hljs-number">1</span>; i++) {
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">int</span> j = i+<span class="hljs-number">1</span>; j &lt; entities.size(); j++) {
+        Entity entity1 = entities.get(i);
+        Entity entity2 = entities.get(j);
+        Collider[] colliders = entity1.collidesWith(entity2);
+        <span class="hljs-keyword">if</span> (colliders != <span class="hljs-keyword">null</span>) {
+            entity1.onCollision(entity2, colliders[<span class="hljs-number">1</span>]);
+            entity2.onCollision(entity1, colliders[<span class="hljs-number">0</span>]);
+        }
+    }
+}
+</div></code></pre>
+<ul>
+<li>
+<p><code>updateState</code> should for call the <code>setDirectionAutomatically</code> for all automated players.</p>
+</li>
+<li>
+<p>Player activation and deactivation should alter <code>staticEntities</code> and <code>dynamicEntities</code> in a suitable way and call <code>updateEntitiesList</code>. The game will certainly be different upon the addition and deletion of players.</p>
+</li>
+<li>
+<p>There should be a &quot;cooldown&quot; period prior to the start of the game and after a game reset, so that players have an opportunity to get ready. A cool down period also gives an opportunity to present information on screen.</p>
+</li>
+</ul>
 <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 <script>
