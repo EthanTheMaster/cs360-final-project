@@ -4,6 +4,7 @@ import game.AbstractLocalGame;
 import game.GameEventHandler;
 import game.GameSceneTest;
 import game.map.BouncyBalls;
+import game.map.Spin;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
@@ -11,12 +12,17 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
 
+import java.io.FileInputStream;
+import java.io.ObjectInputStream;
 import java.util.Arrays;
 
 public class TestApp extends Application {
     @Override
     public void start(Stage stage) throws Exception {
-        AbstractLocalGame gameScene = new BouncyBalls();
+        FileInputStream fileInputStream = new FileInputStream("Spin.map");
+        ObjectInputStream objectInputStream = new ObjectInputStream(fileInputStream);
+
+        AbstractLocalGame gameScene = (AbstractLocalGame) objectInputStream.readObject();
         gameScene.setGameEventHandler(new GameEventHandler() {
             @Override
             public void onWinnerDetermined(int winner) {
@@ -35,10 +41,10 @@ public class TestApp extends Application {
                 System.out.println("The players active are: " + Arrays.toString(activePlayers));
             }
         });
-        gameScene.activatePlayer(0, false);
-        gameScene.activatePlayer(1, false);
-        gameScene.activatePlayer(2, false);
-        gameScene.activatePlayer(3, false);
+        gameScene.activatePlayer(0, true);
+        gameScene.activatePlayer(1, true);
+        gameScene.activatePlayer(2, true);
+        gameScene.activatePlayer(3, true);
 
         Canvas canvas = gameScene.generateRenderableComponent(500, 500);
         GameLoop timer = new GameLoop(gameScene, canvas);

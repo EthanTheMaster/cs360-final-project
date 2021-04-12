@@ -165,11 +165,14 @@ public class BouncyBalls extends AbstractLocalGame {
             },
             new int[]{0, 0, 0},
             false,
-            (other, otherCollider) -> {
-                if (other instanceof Ball) {
-                    deductLife(0);
+                new CollisionEventHandler() {
+                    @Override
+                    public void handleCollision(Entity other, Collider otherCollider) {
+                        if (other instanceof Ball) {
+                            BouncyBalls.this.deductLife(0);
+                        }
+                    }
                 }
-            }
         ),
         new Obstacle(
             "Player1 Killzone",
@@ -183,11 +186,14 @@ public class BouncyBalls extends AbstractLocalGame {
             },
             new int[]{0, 0, 0},
             false,
-            (other, otherCollider) -> {
-                if (other instanceof Ball) {
-                    deductLife(1);
+                new CollisionEventHandler() {
+                    @Override
+                    public void handleCollision(Entity other, Collider otherCollider) {
+                        if (other instanceof Ball) {
+                            BouncyBalls.this.deductLife(1);
+                        }
+                    }
                 }
-            }
         ),
         new Obstacle(
             "Player2 Killzone",
@@ -201,11 +207,14 @@ public class BouncyBalls extends AbstractLocalGame {
             },
             new int[]{0, 0, 0},
             false,
-            (other, otherCollider) -> {
-                if (other instanceof Ball) {
-                    deductLife(2);
+                new CollisionEventHandler() {
+                    @Override
+                    public void handleCollision(Entity other, Collider otherCollider) {
+                        if (other instanceof Ball) {
+                            BouncyBalls.this.deductLife(2);
+                        }
+                    }
                 }
-            }
         ),
         new Obstacle(
             "Player3 Killzone",
@@ -219,11 +228,14 @@ public class BouncyBalls extends AbstractLocalGame {
             },
             new int[]{0, 0, 0},
             false,
-            (other, otherCollider) -> {
-                if (other instanceof Ball) {
-                    deductLife(3);
+                new CollisionEventHandler() {
+                    @Override
+                    public void handleCollision(Entity other, Collider otherCollider) {
+                        if (other instanceof Ball) {
+                            BouncyBalls.this.deductLife(3);
+                        }
+                    }
                 }
-            }
         )
     };
     Obstacle bouncyBalls = new Obstacle(
