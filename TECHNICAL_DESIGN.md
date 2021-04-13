@@ -1100,6 +1100,8 @@ try {
 
 From this point, we register the players by looping through `chosenPlayerDesignations`. If `chosenPlayerDesignations[i]` is `0` (the Human option) then we simply call `game.registerPlayer(i, false)` but if it is `1` (the AI option) then we call `game.registerPlayer(i, true)`.
 
+![Game Creation UML](document_assets/game_creation_uml_img.png)
+
 <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 <script>
