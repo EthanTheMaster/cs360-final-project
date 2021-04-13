@@ -68,7 +68,10 @@ public class CreateLocalGameMenu {
         Button startGame = new Button("Start Game!");
         startGame.setOnMouseClicked(CreateLocalGameMenu::onGameStart);
         startGame.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
-        gridPane.add(startGame, 0, 5, 2, 1);
+        Button cancel = new Button("Cancel");
+        cancel.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
+        cancel.setOnMouseClicked(mouseEvent -> MainMenu.showMenu(stage));
+        gridPane.addRow(5, cancel, startGame);
 
         gridPane.setPadding(new Insets(20));
         gridPane.setVgap(20);
