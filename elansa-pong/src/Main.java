@@ -28,7 +28,7 @@ public class Main {
                 }
             }
         } else {
-            Application.launch(TestApp.class);
+            Application.launch(App.class);
         }
     }
 }
