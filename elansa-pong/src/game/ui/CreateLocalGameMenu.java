@@ -106,6 +106,7 @@ public class CreateLocalGameMenu {
         }
         if (!existsOneHuman) {
             displayError("Human Player is Required", "There must be at least one human player.");
+            return;
         }
 
         // Attempt to serialize the file

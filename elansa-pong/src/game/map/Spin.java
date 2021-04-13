@@ -34,6 +34,7 @@ public class Spin extends AbstractLocalGame {
     double blockLength = playerThickness + wallOffset;
 
     int[] lives = {0, 0, 0, 0};
+    int initialLives = 2;
     int numActivePlayers = 0;
 
     Obstacle block02 = new Obstacle(
@@ -386,7 +387,7 @@ public class Spin extends AbstractLocalGame {
     @Override
     public void activatePlayer(int playerNumber, boolean automated) {
         numActivePlayers += 1;
-        lives[playerNumber] = 2;
+        lives[playerNumber] = initialLives;
         this.activePlayers[playerNumber] = true;
         this.automatedPlayers[playerNumber] = automated;
         updatePlayerAreas();
