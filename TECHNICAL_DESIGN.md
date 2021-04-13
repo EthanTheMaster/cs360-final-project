@@ -1029,7 +1029,8 @@ In the above code, we merely print out events that occur in the game as opposed 
   ```java
     for (Entity entity : entities) {
         entity.setPosition(
-            entity.getPosition().add(entity.getVelocity().scale(deltaTime))
+            entity.getPosition()
+                  .add(entity.getVelocity().scale(deltaTime))
         );
     }
   ```
@@ -1056,7 +1057,8 @@ for (int i = 0; i < entities.size()-1; i++) {
 * Once satisfied with the level design, exporting the game to a file on disk should be done. The following code is a quick and easy way to use Java serialization to export the `AbstractLocalGame` to a file.
 ```java
     AbstractLocalGame game = new Game();
-    FileOutputStream fileOutputStream = new FileOutputStream(mapName + ".map");
+    FileOutputStream fileOutputStream = 
+            new FileOutputStream(mapName + ".map");
     ObjectOutputStream objectOutputStream = 
             new ObjectOutputStream(fileOutputStream);
     objectOutputStream.writeObject(game);

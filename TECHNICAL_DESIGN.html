@@ -1284,7 +1284,8 @@ $$</p>
 </ul>
 <pre class="hljs"><code><div>  <span class="hljs-keyword">for</span> (Entity entity : entities) {
       entity.setPosition(
-          entity.getPosition().add(entity.getVelocity().scale(deltaTime))
+          entity.getPosition()
+                .add(entity.getVelocity().scale(deltaTime))
       );
   }
 </div></code></pre>
@@ -1318,7 +1319,8 @@ $$</p>
 </li>
 </ul>
 <pre class="hljs"><code><div>    AbstractLocalGame game = <span class="hljs-keyword">new</span> Game();
-    FileOutputStream fileOutputStream = <span class="hljs-keyword">new</span> FileOutputStream(mapName + <span class="hljs-string">".map"</span>);
+    FileOutputStream fileOutputStream = 
+            <span class="hljs-keyword">new</span> FileOutputStream(mapName + <span class="hljs-string">".map"</span>);
     ObjectOutputStream objectOutputStream = 
             <span class="hljs-keyword">new</span> ObjectOutputStream(fileOutputStream);
     objectOutputStream.writeObject(game);
