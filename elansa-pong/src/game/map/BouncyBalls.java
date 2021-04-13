@@ -34,8 +34,8 @@ public class BouncyBalls extends AbstractLocalGame {
 
     double bouncyBallRadius = 0.07;
 
-    int[] lives = {2, 2, 2, 2};
-    int numActivePlayers = 4;
+    int[] lives = {0, 0, 0, 0};
+    int numActivePlayers = 0;
 
     Obstacle block02 = new Obstacle(
     "Block02",
@@ -310,7 +310,6 @@ public class BouncyBalls extends AbstractLocalGame {
         lives[playerNumber] -= 1;
         if (lives[playerNumber] == 0) {
             deactivatePlayer(playerNumber);
-            numActivePlayers -= 1;
 
             gameEventHandler.onPlayerElimination(playerNumber);
         }
@@ -371,6 +370,8 @@ public class BouncyBalls extends AbstractLocalGame {
 
     @Override
     public void activatePlayer(int playerNumber, boolean automated) {
+        numActivePlayers += 1;
+        lives[playerNumber] = 2;
         this.activePlayers[playerNumber] = true;
         this.automatedPlayers[playerNumber] = automated;
         updatePlayerAreas();
@@ -378,6 +379,7 @@ public class BouncyBalls extends AbstractLocalGame {
 
     @Override
     public void deactivatePlayer(int playerNumber) {
+        numActivePlayers -= 1;
         this.activePlayers[playerNumber] = false;
         this.automatedPlayers[playerNumber] = false;
         updatePlayerAreas();
@@ -401,7 +403,6 @@ public class BouncyBalls extends AbstractLocalGame {
             ballThrowTime = currentTime + resetTime;
         }
         lastRecordedTime = currentTime;
-
         // Throw ball
         if (ball.getVelocity().mag() < Math.ulp(1.0) && currentTime > ballThrowTime) {
             ball.setVelocity(
