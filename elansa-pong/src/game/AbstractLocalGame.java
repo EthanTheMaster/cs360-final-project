@@ -52,4 +52,28 @@ public abstract class AbstractLocalGame implements GameScene {
     public void setGameEventHandler(GameEventHandler gameEventHandler) {
         this.gameEventHandler = gameEventHandler;
     }
+
+    public ArrayList<Entity> getEntities() {
+        return entities;
+    }
+
+    public ArrayList<Entity> getStaticEntities() {
+        return staticEntities;
+    }
+
+    public ArrayList<Entity> getDynamicEntities() {
+        return dynamicEntities;
+    }
+
+    public Player[] getPlayers() {
+        return players;
+    }
+
+    public boolean[] getActivePlayers() {
+        return activePlayers;
+    }
+
+    public boolean[] getAutomatedPlayers() {
+        return automatedPlayers;
+    }
 }

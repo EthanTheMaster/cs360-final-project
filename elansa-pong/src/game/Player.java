@@ -16,8 +16,8 @@ public class Player extends Entity {
     private final Vec2d positiveDirection;
 
     // Keycodes associated with positive and negative movement
-    private final int directionKeyPositive;
-    private final int directionKeyNegative;
+    private int directionKeyPositive;
+    private int directionKeyNegative;
 
     // Use unit square units for distance and seconds should be the time unit
     private double moveSpeed;
@@ -143,5 +143,21 @@ public class Player extends Entity {
 
     public void setMoveSpeed(double moveSpeed) {
         this.moveSpeed = moveSpeed;
+    }
+
+    public int getDirectionKeyPositive() {
+        return directionKeyPositive;
+    }
+
+    public void setDirectionKeyPositive(int directionKeyPositive) {
+        this.directionKeyPositive = directionKeyPositive;
+    }
+
+    public int getDirectionKeyNegative() {
+        return directionKeyNegative;
+    }
+
+    public void setDirectionKeyNegative(int directionKeyNegative) {
+        this.directionKeyNegative = directionKeyNegative;
     }
 }

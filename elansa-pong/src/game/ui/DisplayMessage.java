@@ -42,7 +42,7 @@ public class DisplayMessage extends Label {
         super.setOpacity(1.0);
     }
 
-    public void hideMessage(String message) {
+    public void hideMessage() {
         fadeAnimation.stop();
         super.setOpacity(0.0);
     }

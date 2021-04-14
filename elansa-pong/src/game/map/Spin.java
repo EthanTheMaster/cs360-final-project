@@ -80,7 +80,7 @@ public class Spin extends AbstractLocalGame {
             null
     );
     Obstacle block13 = new Obstacle(
-            "Block02",
+            "Block13",
             new Collider[]{
                     new RectangleCollider(
                             new Vec2d(1 - blockLength, 1 - blockLength),
