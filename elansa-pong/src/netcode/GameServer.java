@@ -19,6 +19,8 @@ import netcode.packets.PacketDecoder;
 import netcode.packets.PacketEncoder;
 import netcode.state.ServerState;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 public class GameServer {
@@ -28,12 +30,12 @@ public class GameServer {
 
     private ServerState serverState;
 
-    public GameServer(String hostname, int portTcp, int portUdp, AbstractLocalGame game) {
+    public GameServer(String hostname, int portTcp, int portUdp, File gameMap) throws IOException, ClassNotFoundException {
         this.hostname = hostname;
         this.portTcp = portTcp;
         this.portUdp = portUdp;
 
-        serverState = new ServerState(game);
+        serverState = new ServerState(gameMap);
     }
 
     public void launchServer() throws InterruptedException {
@@ -91,12 +93,4 @@ public class GameServer {
         return serverState;
     }
 
-    public static void main(String[] args) {
-        try {
-            new GameServer("127.0.0.1", 8080, 8081, new Spin()).launchServer();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-
-    }
 }

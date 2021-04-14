@@ -1,5 +1,6 @@
 package netcode.packets;
 
+import game.AbstractLocalGame;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
@@ -71,5 +72,20 @@ public class Serializer {
         buffer.readBytes(bytes);
         Object obj = Serializer.fromBytes(bytes);
         return (Packet) Serializer.fromBytes(bytes);
+    }
+
+    public static AbstractLocalGame readGameMapFromFile(File gameMap) throws IOException, ClassNotFoundException {
+        // Attempt to serialize the file
+        ObjectInputStream objectInputStream = null;
+        try {
+            FileInputStream fileInputStream = new FileInputStream(gameMap);
+            objectInputStream = new ObjectInputStream(fileInputStream);
+
+            return (AbstractLocalGame) objectInputStream.readObject();
+        } finally {
+            if (objectInputStream != null) {
+                objectInputStream.close();
+            }
+        }
     }
 }

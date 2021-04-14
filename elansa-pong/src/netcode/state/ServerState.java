@@ -3,10 +3,15 @@ package netcode.state;
 import engine.Entity;
 import game.AbstractLocalGame;
 import game.GameEventHandler;
+import game.ui.PlayLocalGame;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import netcode.packets.*;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.ArrayList;
@@ -19,6 +24,7 @@ public class ServerState {
     private static final int CHUNK_SIZE = 5;
     private boolean gameStarted = false;
 
+    private File gameMap;
     private AbstractLocalGame localGame;
 
     private AtomicLong sequenceNumber = new AtomicLong(0);
@@ -52,9 +58,10 @@ public class ServerState {
         }
     };
 
-    public ServerState(AbstractLocalGame game) {
-        localGame = game;
-        game.setGameEventHandler(localGameEventHandler);
+    public ServerState(File gameMap) throws IOException, ClassNotFoundException {
+        this.gameMap = gameMap;
+        localGame = Serializer.readGameMapFromFile(gameMap);
+        localGame.setGameEventHandler(localGameEventHandler);
     }
 
     private void sendGameOver(String message) {
@@ -67,11 +74,14 @@ public class ServerState {
     private void resetServer() {
         System.out.println("Restarting server ...");
         gameStarted = false;
-        localGame.resetGame();
-        for (int i = 0; i < 4; i++) {
-            localGame.getActivePlayers()[i] = false;
-            localGame.getAutomatedPlayers()[i] = false;
+        // Retrieve game map to get a clean version of the game
+        try {
+            localGame = Serializer.readGameMapFromFile(gameMap);
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
         }
+        localGame.setGameEventHandler(localGameEventHandler);
+
         sequenceNumber = new AtomicLong(0);
         playerDataMap.clear();
         availableAssignments = new ConcurrentLinkedDeque<Integer>(Arrays.asList(0, 1, 2, 3));

@@ -21,6 +21,7 @@ public class DisplayMessage extends Label {
         super.setFont(new Font(20));
         super.setPadding(new javafx.geometry.Insets(15,15,15,15));
         super.setBackground(new Background(new BackgroundFill(Color.WHITE, CornerRadii.EMPTY, Insets.EMPTY)));
+        super.setWrapText(true);
         KeyValue hidden = new KeyValue(super.opacityProperty(), 0.0);
         KeyValue showing = new KeyValue(super.opacityProperty(), 1.0);
         KeyFrame fadeInAndOutFrame0 = new KeyFrame(Duration.ZERO, hidden);

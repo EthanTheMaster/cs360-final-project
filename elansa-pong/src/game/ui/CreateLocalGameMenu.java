@@ -14,6 +14,7 @@ import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.GridPane;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import netcode.packets.Serializer;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -109,13 +110,8 @@ public class CreateLocalGameMenu {
             return;
         }
 
-        // Attempt to serialize the file
-        ObjectInputStream objectInputStream = null;
         try {
-            FileInputStream fileInputStream = new FileInputStream(mapChosen);
-            objectInputStream = new ObjectInputStream(fileInputStream);
-
-            AbstractLocalGame game = (AbstractLocalGame) objectInputStream.readObject();
+            AbstractLocalGame game = Serializer.readGameMapFromFile(mapChosen);
             for (int i = 0; i < chosenPlayerDesignations.length; i++) {
                 if (chosenPlayerDesignations[i] == 0) {
                     game.activatePlayer(i, false);
@@ -127,14 +123,6 @@ public class CreateLocalGameMenu {
             PlayLocalGame.displayGame(mainStage, game);
         } catch (Exception e) {
             displayError("Could Not Read Map", "There was an error in reading the map. Please try again.");
-        } finally {
-            if (objectInputStream != null) {
-                try {
-                    objectInputStream.close();
-                } catch (IOException e) {
-                    displayError("Could Not Read Map", "There was an error in reading the map. Please try again.");
-                }
-            }
         }
     }
 }

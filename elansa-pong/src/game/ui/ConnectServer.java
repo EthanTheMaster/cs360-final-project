@@ -25,7 +25,15 @@ public class ConnectServer {
         cancel.setOnMouseClicked(mouseEvent -> MainMenu.showMenu(stage));
         Button connect = new Button("Connect");
         connect.setOnMouseClicked(mouseEvent -> {
-            new GameClient("127.0.0.1", 8080, 8081).launchClient(stage);
+            try {
+                new GameClient(
+                        ipField.getText(),
+                        Integer.parseInt(tcpField.getText()),
+                        Integer.parseInt(udpField.getText())
+                ).launchClient(stage);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         });
         connect.setMaxSize(Double.MAX_VALUE, Double.MAX_VALUE);
 

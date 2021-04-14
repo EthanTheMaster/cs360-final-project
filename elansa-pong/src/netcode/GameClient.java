@@ -85,7 +85,13 @@ public class GameClient {
 
             udpChannel.closeFuture().sync();
             tcpChannel.closeFuture().sync();
-        } finally {
+        } catch (Exception e) {
+            Platform.runLater(() -> {
+                client.getLivesBoard().sustainMessage("Failed to Connect to Server. Please Try Again.");
+                client.close();
+            });
+        }
+        finally {
             workerGroup.shutdownGracefully();
         }
     }
