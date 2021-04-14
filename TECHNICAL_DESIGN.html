@@ -1328,6 +1328,17 @@ $$</p>
     fileOutputStream.close();
     objectOutputStream.close();
 </div></code></pre>
+<ul>
+<li>
+<p>Detecting when a point has been scored against a player can easily be done by placing an invisible &quot;killzone&quot; <code>Obstacle</code> behind a player. The <code>trigger</code> for this <code>Obstacle</code> should check that the entity it collided with is a <code>Ball</code>, and subsequently trigger the <code>deductLife</code> method to penalize the player that the <code>Obstacle</code> is behind. Additionally, the killzones should be added to <code>staticEntities</code> for they would not move throughout the duration of the game.</p>
+</li>
+<li>
+<p>Deducting a life through the <code>deductLife</code> method should deactivate a player when that player's lives reaches 0. When a player's lives reaches 0, a call to <code>onPlayerElimination</code> in the <code>GameEventHandler</code>. Moreover, if there is one active player left, a winner has been determined so <code>onWinnerDetermined</code> should also be called in the <code>GameEventHandler</code>. All life deductions, however, should have a call to <code>onLifeChange</code> in the <code>GameEventHandler</code>.</p>
+</li>
+<li>
+<p>If player on player collision is undesirable, one could create &quot;block&quot; <code>Obstacle</code>s for each corner of the board. Whenever the <code>activate</code> method is invoked, the <code>activePlayers</code> array should be updated accordingly and a block should be placed between player <code>i</code> and player <code>j</code> (where <code>i != j</code> and player <code>i</code> and player <code>j</code> are adjacent on the board) iff <code>activePlayers[i] &amp;&amp; activePlayers[j]</code>. These block <code>Obstacle</code>s should also be added to the <code>staticEntities</code> list. One must also consider removing these blocks upon player deactivation.</p>
+</li>
+</ul>
 <h2 id="how-a-client-initiates-a-local-game">How a Client Initiates a Local Game</h2>
 <p>The client will be presented with a screen resembling that of the figure below.</p>
 <p><img src="document_assets/local_game_ui_mockup.png" alt="Local Level Select"></p>

@@ -1067,6 +1067,12 @@ for (int i = 0; i < entities.size()-1; i++) {
     objectOutputStream.close();
 ```
 
+* Detecting when a point has been scored against a player can easily be done by placing an invisible "killzone" `Obstacle` behind a player. The `trigger` for this `Obstacle` should check that the entity it collided with is a `Ball`, and subsequently trigger the `deductLife` method to penalize the player that the `Obstacle` is behind. Additionally, the killzones should be added to `staticEntities` for they would not move throughout the duration of the game.
+
+* Deducting a life through the `deductLife` method should deactivate a player when that player's lives reaches 0. When a player's lives reaches 0, a call to `onPlayerElimination` in the `GameEventHandler`. Moreover, if there is one active player left, a winner has been determined so `onWinnerDetermined` should also be called in the `GameEventHandler`. All life deductions, however, should have a call to `onLifeChange` in the `GameEventHandler`. 
+
+* If player on player collision is undesirable, one could create "block" `Obstacle`s for each corner of the board. Whenever the `activate` method is invoked, the `activePlayers` array should be updated accordingly and a block should be placed between player `i` and player `j` (where `i != j` and player `i` and player `j` are adjacent on the board) iff `activePlayers[i] && activePlayers[j]`. These block `Obstacle`s should also be added to the `staticEntities` list. One must also consider removing these blocks upon player deactivation.
+
 ## How a Client Initiates a Local Game
 The client will be presented with a screen resembling that of the figure below.
 
