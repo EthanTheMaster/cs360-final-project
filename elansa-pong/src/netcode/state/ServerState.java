@@ -29,11 +29,13 @@ public class ServerState {
     GameEventHandler localGameEventHandler = new GameEventHandler() {
         @Override
         public void onWinnerDetermined(int winner) {
+            System.out.println("Winner found");
             sendGameOver(String.format("The Winner is Player %d!", winner + 1));
         }
 
         @Override
         public void onPlayerElimination(int eliminatedPlayer) {
+            System.out.println("Player eliminated");
             sendSynchronization();
             for (ServerPlayerData playerData : playerDataMap.values()) {
                 playerData.getTcpCtx().writeAndFlush(new PlayerEliminated(eliminatedPlayer));
@@ -42,6 +44,7 @@ public class ServerState {
 
         @Override
         public void onLifeChange(int[] newLives, boolean[] activePlayers) {
+            System.out.println("Life changed");
             sendSynchronization();
             for (ServerPlayerData playerData : playerDataMap.values()) {
                 playerData.getTcpCtx().writeAndFlush(new LivesUpdate(newLives, activePlayers));
@@ -63,12 +66,17 @@ public class ServerState {
 
     private void resetServer() {
         System.out.println("Restarting server ...");
-        disconnectAllClients();
-        localGame.resetGame();
-        sequenceNumber = new AtomicLong(0);
         gameStarted = false;
+        localGame.resetGame();
+        for (int i = 0; i < 4; i++) {
+            localGame.getActivePlayers()[i] = false;
+            localGame.getAutomatedPlayers()[i] = false;
+        }
+        sequenceNumber = new AtomicLong(0);
         playerDataMap.clear();
         availableAssignments = new ConcurrentLinkedDeque<Integer>(Arrays.asList(0, 1, 2, 3));
+
+        disconnectAllClients();
     }
 
     /**
@@ -143,6 +151,13 @@ public class ServerState {
      * @param connect the client's connect packet
      */
     public void onPlayerConnect(ChannelHandlerContext ctx, Connect connect) {
+        if (gameStarted) {
+            ctx.writeAndFlush(new GameOver("A game is currently in progress. Please come back later."));
+            ctx.close();
+            return;
+        }
+
+        System.out.println(availableAssignments);
         int playerNumber = availableAssignments.pop();
         localGame.activatePlayer(playerNumber, false);
         playerDataMap.put(ctx.channel().remoteAddress(), new ServerPlayerData(connect.getUdpPort(), playerNumber, ctx));
@@ -157,19 +172,25 @@ public class ServerState {
     public void onPlayerDisconnect(ChannelHandlerContext ctx) {
         ServerPlayerData playerData = playerDataMap.remove(ctx.channel().remoteAddress());
         if (playerData != null) {
-            localGame.deactivatePlayer(playerData.getPlayerNumber());
-            availableAssignments.push(playerData.getPlayerNumber());
-            sendSynchronization();
-
+            // Trigger the player elimination mechanism as active player just left
             if (gameStarted) {
-                // Trigger the player elimination mechanism as active player just left
+                // Eliminated active players who disconnect
                 if (localGame.getActivePlayers()[playerData.getPlayerNumber()]) {
+                    localGame.deactivatePlayer(playerData.getPlayerNumber());
                     localGameEventHandler.onPlayerElimination(playerData.getPlayerNumber());
                 }
+
+                // Player wins by default
                 if (playerDataMap.size() == 1) {
-                    sendGameOver("There are no more players left. The game has ended.");
+                    int winner = playerDataMap.values().stream().findFirst().get().getPlayerNumber();
+                    localGameEventHandler.onWinnerDetermined(winner);
                 }
+            } else {
+                // Give back the assignment assuming the game has not started
+                availableAssignments.push(playerData.getPlayerNumber());
+                localGame.deactivatePlayer(playerData.getPlayerNumber());
             }
+            sendSynchronization();
         }
 
     }

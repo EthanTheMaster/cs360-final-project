@@ -36,7 +36,6 @@ public class BouncyBalls extends AbstractLocalGame {
 
     int[] lives = {0, 0, 0, 0};
     int initialLives = 2;
-    int numActivePlayers = 0;
 
     Obstacle block02 = new Obstacle(
     "Block02",
@@ -306,6 +305,22 @@ public class BouncyBalls extends AbstractLocalGame {
         dynamicEntities.add(ball);
     }
 
+    private int determineWinner() {
+        // Check if there is one active player
+        int res = -1;
+        for (int i = 0; i < activePlayers.length; i++) {
+            if (activePlayers[i]) {
+                if (res == -1) {
+                    res = i;
+                } else {
+                    // Found another active player
+                    return -1;
+                }
+            }
+        }
+        return res;
+    }
+
     @Override
     protected void deductLife(int playerNumber) {
         lives[playerNumber] -= 1;
@@ -316,12 +331,9 @@ public class BouncyBalls extends AbstractLocalGame {
         }
         gameEventHandler.onLifeChange(lives, activePlayers);
         // Winner has been found pick only player with nonzero lives
-        if (numActivePlayers == 1) {
-            for (int i = 0; i < lives.length; i++) {
-                if (lives[i] != 0) {
-                    gameEventHandler.onWinnerDetermined(i);
-                }
-            }
+        int winner = determineWinner();
+        if (winner != -1) {
+            gameEventHandler.onWinnerDetermined(winner);
         }
         resetGame();
     }
@@ -371,7 +383,6 @@ public class BouncyBalls extends AbstractLocalGame {
 
     @Override
     public void activatePlayer(int playerNumber, boolean automated) {
-        numActivePlayers += 1;
         lives[playerNumber] = initialLives;
         this.activePlayers[playerNumber] = true;
         this.automatedPlayers[playerNumber] = automated;
@@ -380,7 +391,6 @@ public class BouncyBalls extends AbstractLocalGame {
 
     @Override
     public void deactivatePlayer(int playerNumber) {
-        numActivePlayers -= 1;
         this.activePlayers[playerNumber] = false;
         this.automatedPlayers[playerNumber] = false;
         updatePlayerAreas();
