@@ -1110,6 +1110,147 @@ From this point, we register the players by looping through `chosenPlayerDesigna
 
 ![Game Creation UML](document_assets/game_creation_uml_img.png)
 
+# Design Sketch: Playing the Game over a Network
+In order to play the game over a network, we will use a client-server architecture. A central server will host a game, and clients connect to this server. The server will act as a "source of truth" by broadcasting updates to the clients, and these updates are how the clients are informed of the current game state from which clients can base their decisions.
+
+**Because of the variability in how networking is handled by various libraries and framework, the following discussion will merely sketch out the ideas of implementing the game to be playable over a network as different. The technical details for how to realize this design sketch will greatly differ across different libraries and frameworks. There will also be scarce code examples for this reason.**
+
+## Packets
+In order to communicate over a network, the game server and game clients will send packets to each other. These packets are formed by serializing Java objects and pushing the serialized object through the network. For brevity, we will simply list the classes and their fields with the understanding that constructors and getters are made and that the class implements `Serializable` in some fashion. Discussions on what these packets are for will be postponed for later, but their use are hinted through their names.
+
+```java
+class Connect {
+    int udpPort;
+}
+
+class GameOver {
+    String message;
+}
+
+class LivesUpdate {
+    int[] newLives;
+    boolean[] activePlayers;
+}
+
+class PlayerAssignment {
+    int playerNumber;
+    Player player;
+}
+
+class PlayerElimination {
+    int eliminatedPlayer;
+}
+
+class PlayerInput {
+    int direction;
+    Vec2d position;
+    long sequenceNumber;
+}
+
+class Ready {}
+
+class Synchronization {
+    ArrayList<Entity> entities;
+    boolean critical;
+    long sequenceNumber
+}
+```
+
+## Sending and Receiving Packets
+We will assume that a networking library is used such that one can respond to incoming messages on the network that are deserialized. Furthermore we will assume that the networking library handles the receiving and sending of packets asynchronously which means that the program will not block to receive not-yet-arrived messages. Handling networking events asynchronously is typically done through an "event loop" whereby a loop constantly checks for networking activity. When network activity is detected, any listeners interesting in that activity will be notified. 
+
+Asynchronous operations will allow us to have a game that updates in realtime. For these reasons, the Java library Netty will be used as it satisfies these criteria and presents a high level abstraction to handle networking operations. We will not go into much details about Netty but the design of the networking portion of the game is heavily influenced by Netty's capabilities. 
+
+Packets will either be send through TCP or UDP. TCP is a networking protocol that guarantees reliability in the sense that packets cannot be lost in transmission and that packets will arrive in the order they were sent. These guarantees however comes at the cost of performance as maintaining these guarantees have overhead. For this reason we will utilize TCP to send critical information that do not need to be delivered as quickly as possible. Packets sent over TCP include all packets but the `PlayerInput` packet. When time is a constraint and we need to maximize data throughput, the UDP protocol will be utilized. Packets sent over UDP are not guaranteed to arrive nor are guaranteed to be received in the order they were sent. UDP however does guarantee that packets remain in tact and are not split. UDP has low overhead and is used for the `PlayerInput` and `Synchronization` packets. What these packets are for are discussed momentarily. 
+
+## Setting up the Server and Client
+The classes `GameServer` and `GameClient` should be made to handle the networking operations of the server and client, respectively. To construct a `GameServer` one should pass a `hostname: String`, `portTcp: int`, `portUdp: int`, and `gameMap: File`. The first 4 parameters define where the TCP and UDP channels of the server should bind to and the last parameter defines the map that the server should let clients play on. The `GameServer` should have a `launchServer` method that creates a TCP channel on the address `hostname:portTcp` and a UDP channel on the address `hostname:portUDP`. How this is done is beyond the scope of this design, and one should refer to the networking library's documentation. 
+
+The `GameClient` class should be constructed from the following parameters: `serverIp: String`, `serverPortTcp: int`, and `serverPortUdp`. These parameters define what computer on the network should be contact and the ports that need to connected to in order to establish communications with the server. 
+
+There needs to be a method `establishConnection` which starts a connection to the server in accordance with the aforementioned parameters. Again, how this is done will vary depending on the library used, and the library's documentation should be consulted. It should be noted that when establishing a UDP connection on the client's side, the client should bind to address `0` which informs the operating system to find a suitable port that the outside world can use to communicate with this client over UDP. We will assume that `establishConnection` will populate two private fields `udpChannel` and `tcpChannel` in the class that can be accessed through getters to allow those instantiating the `GameClient` to send messages to the server over a channel of their choosing. 
+
+Pairing with this `establishConnection` should be a `close` method that closes all channels. Next, this `GameClient` needs a user interface through which the user can interact with. Thus there needs to be a method `launchClient` that takes a JavaFX `Stage` and fills the window with a user interface. We will be creating a class `ClientLocalGame` that implements `GameScene`, and this class should be suitable for rendering onto the window using the techniques mentioned above for local games.
+
+Finally the `GameClient` needs to have a field `updateHandlerHook: ClientUpdateHandler` where `ClientUpdateHandler` is an interface that allows one to customize how they would like to respond to updates coming into the client from the server. The code is listed below, and it is straightforward what each method does. Each method is invoked the moment the client receives a `Packet` that matches the name and parameter in the method. Everytime a `GameClient` is constructed this `ClientUpdateHandler` should be filled in with a custom implementation. Because networking implementations details will differ, we will simply assume that one is able to invoke the correct method in `updateHandlerHook` the moment a packet arrives either via TCP or UDP.
+
+```java
+public interface ClientUpdateHandler {
+    void receivedPlayerAssignment(PlayerAssignment assignment);
+    void receivedSynchronization(Synchronization synchronization);
+    void receivedPlayerElimination(PlayerEliminated playerEliminated);
+    void receivedLivesUpdate(LivesUpdate livesUpdate);
+    void receivedGameOver(GameOver gameOver);
+}
+```
+
+## Maintaining the Server State
+The `GameServer` should have a field `serverState: ServerState` where `ServerState` is a class that we will soon elaborate on. The `ServerState` essentially is a catch-all class that maintains the server's internal state with respect to the clients connected an data associated with them and the current state of the game.
+
+The fields in this class are `gameStarted: boolean` to keep track if the game has started, `gameMap: File` to keep track of the map being played on, `localGame: AbstractLocalGame` to keep track the progress of the game, `sequenceNumber: long` to aid in sending messages over UDP, `playerDataMap: HashMap<SocketAddress, ServerPlayerData>` to keep track of player data where `ServerPlayerData` will be explained momentarily, `availableAssignments: Stack<Integer>` to keep track available player positions, and a `localGameEventHandler: GameEventHandler` to act upon game events. This class in constructed with only parameter `gameMap: File` which is then deserialized into an `AbstractLocalGame` that is used to populate `localGame`. The `localGame` has its `GameEventHandler` set to `localGameEventHandler` which will be elaborated on in the future with respect to the appropriate actions that are taken in response to game events. The code below shows how the fields not mentioned are initialized to by default
+
+```java
+gameStarted = false;
+sequenceNumber = 0;
+playerDataMap = HashMap::empty();
+// Top of stack is on the left
+availableAssignments = [0, 1, 2, 3]
+localGameEventHandler = /*Filled in later*/
+```
+
+The `ServerPlayerData` class is a catchall class that encodes useful information for a client. This class has the fields `isReady: boolean`, `udpPort: int`, `playerNumber: int`, `lastReceivedSequenceNumber = -1`, and a `tcpCtx` which is TCP channel to the client. The field `isReady` is by default `false` and holds whether or not a client has signified their readiness to start the game. The `udpPort` field is filled out upon construction and is used to communicate with the client via UDP. The `lastReceivedSequenceNumber` is by default `-1` and aids in communication over UDP. The fields `playerNumber` and `tcpCtx` are filled in on construction.
+
+We will assume that the `ServerState` is subscribed to network events. 
+
+* If a client connects to the server by sending the `Connect(portUdp)`, first we check whether the game has started by looking at `gameStarted`. If the game has started, we close the client's connection and tell them that a game is in progress and to come back later. If a game has not started, we `pop` from `availableAssignments` to get a `playerNumber: int`. We then activate the player in the `localGame`. Next, we place into `playerDataMap` a key-value pair where the key is the client's TCP address and port pair and the value is a `ServerPlayerData` object constructed with the `portUdp` provided in the `Connect` packet, `playerNumber`, and the TCP channel of the client. Finally we send to the client a `PlayerAssignment` packet with the following parameters: `playerNumber` and `localGame.getPlayers[playerNumber]`. We then send a `Synchronization` packet over TCP to all connected clients where the list of entities in the `Synchronization` packet are all `staticEntities`, `dynamicEntities`, and active players in `localGame`. The `critical` field is set to `true` and `sequenceNumber` is set arbitrarily to `-1`. The `Synchronization` packet essentially inform all clients on the current state of the game board.
+
+* If a client disconnects, we check the `playerDataMap` for an entry associated with the disconnected client. If there is an entry found, we check if the game has started. If the game has started we deactivate the client and execute the `onPlayerElimination` method on the `localGameEventHandler` assuming this client was active in the first place. Because a player has essentially been eliminated we check for a winner by checking if the size of `playerDataMap == 1` which means there is only 1 connected client. Having 1 connected client means that client wins by default, so we call the `onWinnerDetermined` in the `localGameEventHandler`. If the game has not started, we simply take the client's player number and push it back into `availableAssignments` and deactivate the client from the `localGame`. In any event, whether the game has started or not, we end by sending a `Synchronization` packet to all clients over TCP in the same way mentioned above.
+
+* If a client has signified their readiness to start by sending a `Ready` packet, we update the `ServerPlayerData` entry. Then we check if there are more than 1 player and that everybody connected has readied themselves. If that is the case we set `gameStarted` to `true`.
+
+* If a client has sent a `UserInput` packet to update their location in the game, we find their player number through the `playerDataMap`. We now talk about the `sequenceNumber` in `UserInput` and `Synchronization`. Because UDP does not guarantee that packets arrive in order, we can use the sequence number to determine whether a newly arrive packet contains old data. Therefore if the sequence number in the `UserInput` is bigger than the `lastReceivedSequenceNumber` in the `playerDataMap` entry associated with the client, we realize that packet has new data. Realizing this, we then update the `lastReceivedSequenceNumber` to the one just received and update the `Player` associated with the client's `playerNumber` by updating the position and direction as specified in the packet.
+
+We now make use of the event loop present in asynchronous networking libraries. We will impose that every `1ms` the `localGame` in the `ServerState` is updated via the `updateState` method with the current time in nanoseconds passed as the parameter provided that `gameStarted` is `true`. Depending on the server's hardware power, this time delay between updates can be modified. Additionally, the event loop should also send out a broadcast to all clients regarding the current state of the game every `16ms`, provided the game has started. The choice of `16ms` was chosen to maintain a 60fps refresh rate but it can be modified depending on the server's hardware power. Broadcasting the game state should be done over UDP and involves sending a `Synchronization` packet. The entities list in the packet will be all `dynamicEntities` in `localGame` and all active players. The `critical` field should be false and the sequence number should be the `sequenceNumber` which should immediately be incremented.
+
+Finally `GameServer` should have some method to reset the server. This method could be called `resetServer` and all it does is set `gameStarted` to `false`, update `localGame` to be the deserialized result of `gameMap`, setting `localGame`'s `GameEventHandler`, resetting `sequenceNumber` to 0, clearing `playerDataMap`, and resetting `availableAssignments` to `[0,1,2,3]`. Once all this bookkeeping has been performed, the server disconnects all the clients. 
+
+We now consider the `GameEventHandler` associated with `ServerState`.
+* For `onWinnerDetermined`, the server broadcasts a `GameOver` message to all the clients who the winner is and resets the server.
+* For `onLifeChange`, the server sends a `Synchronization` packet over TCP in the same way mentioned above and sends a `LivesUpdate` packet to all clients with the parameters received from `onLifeChange`.
+* For `onPlayerElimination`, the server does the exact same thing as `onLifeChange` but sends a `PlayerEliminated` packet instead with parameters specified by `onPlayerElimination`.
+
+## Networking on the Client Side
+As mentioned before the `ClientLocalGame` should be created implementing the `GameScene` interface. It takes as a parameter a `GameClient` which is the instance of the `GameClient` that created the `ClientLocalGame`. The fields in this class is a `entities: HashMap<String, Entity>` which maps the `id` of an `Entity` to the corresponding `Entity`, a `lastReceivedSequenceNumber: long` which is initially set to `-1` and helps determines whether incoming UDP data is stale or recent, and a `sequenceNumber: long` which is initially set to `0` and aids the server in recognizing whether UDP data is stale or recent. The client also needs to maintain the fields `player: Player` which is the client's `Player` object on the server's `localGame`, `playerId: String` which is the ID of the `Player` object assigned to the client, and `playerAssignment: int` which is the player number of the client.
+
+Once again we will assume that this class is notified of all network events.
+
+* If a `PlayerAssignment` is received, then the client should update `player` and `playerId` based on the `Player` received in the packet. A message should also flash on the screen saying the player assignment received. The keyboard controls should also change in response to the player number received. For example player numbers 0 and 1 should use the up/down arrow keys while player numbers 2 and 3 should use the left/right keys. A message should also display the keyboard controls for convenience.
+
+* If a `Synchronization` packet is received, we first need to check if it is `critical`. Critical `Synchronization` packets do in essence a "full" synchronization leaving out no data. With this in mind we should clear the `entities` map and fill it with all entities in the `Synchronization` packet except the `Entity` whose `id` matches `playerId`. We will eventually want to handle the `Player` object independently of the others which is why it is not added to `entities`. Otherwise, if the packet is not `critical` then we merely update the `entities` map with the `entities` in the `Synchronization` packet without clearly it beforehand. The idea is that noncritical `Synchronization`s merely update the entities received in a critical, full `Synchronization`.
+
+* If a `PlayerElimination` packet is received that a message should be displayed to the screen. For convenience, if the eliminated player matches `playerAssignment` the message should mentioned that the player in particular was eliminated such as "You were eliminated". Additionally, upon elimination the `player` field should be set to `null` so that it no longer is controllable nor rendered. If that match did not occur then "Player X was eliminated" would suffice where X is the player eliminated. 
+
+* If a `LivesUpdate` packet is received, then a message on the screen should flash showing the lives statistics of all active players. All of this information is present in the `LivesUpdate` packet.
+
+* Finally if the client receives a `GameOver` packet, the client should display the message in the packet and call `close` on the `GameClient`.
+
+As for the methods in `GameScene` that need to be implemented. For `updateState`, the code is almost identical to that used in local, non-networked games. The point of consideration to make is that `entities` is a `HashMap` and that `player` is not in this list. All values in the `entities` map should be extracted to a list and `player` should be added to list so long as it is not `null`. At this point the code should mirror the non-networked case.
+
+Whenever a key is released or pressed, a `UserInput` packet should be sent to the server holding the position and velocity of `player`, provided `player` is not null, and the sequence number of the `UserInput` packet should be that of `sequenceNumber` which should be incremented immediately afterwards.
+
+Finally rendering is straightforward, and all values in `entities` should be render along with `player` so long as `player` is not null.
+
+The structure of what was sketched out is displayed below visually.
+
+![Networking UML](document_assets/networking_uml_img.png)
+
+## The Interface for Connecting to and Hosting a Server
+Because hosting a server would likely be done on some remote server that typically does not come with rich graphical interface capabilities, hosting a server should involve the command line where arguments are of the following form `host [hostname] [portTcp] [portUdp] [path to .map file]`. These arguments precisely match the constructor of `GameServer`. From which point `launchServer` can be called.
+
+![Connect To Server Mockup](document_assets/connect_mockup.png)
+
+On the client side, the interface above could be displayed where the fields filled out directly correspond to the constructor of `GameClient`. After construction the `launchClient` method can be invoked.
+
 <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
 <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 <script>
