@@ -24,7 +24,6 @@ public class ClientLocalGame implements GameScene {
 
     private HashMap<String, Entity> entities = new HashMap<>();
     private long lastReceivedSequenceNumber = -1;
-    private boolean hasConsumedUpdate = true;
     private AtomicLong sequenceNumber = new AtomicLong(0);
 
     private GameClient client;
@@ -67,7 +66,6 @@ public class ClientLocalGame implements GameScene {
                 } else {
                     if (synchronization.getSequenceNumber() > lastReceivedSequenceNumber) {
                         lastReceivedSequenceNumber = synchronization.getSequenceNumber();
-                        hasConsumedUpdate = false;
                         for (Entity entity : synchronization.getEntities()) {
                             // Player may be null if player has been eliminated and is now a spectator
                             if (!entity.getId().equals(playerId)) {
@@ -172,12 +170,14 @@ public class ClientLocalGame implements GameScene {
     public void onKeyPressed(KeyEvent e) {
         if (player != null) {
             player.setDirectionKeyPress(e.getCode().getCode());
-            Serializer.sendPacketUdp(
-                    client.getUdpChannel(),
-                    client.getServerIp(),
-                    client.getServerPortUdp(),
-                    new PlayerInput(player.getDirection(), player.getPosition(), sequenceNumber.getAndIncrement())
-            );
+            if (client.getUdpChannel().isActive()) {
+                Serializer.sendPacketUdp(
+                        client.getUdpChannel(),
+                        client.getServerIp(),
+                        client.getServerPortUdp(),
+                        new PlayerInput(player.getDirection(), player.getPosition(), sequenceNumber.getAndIncrement())
+                );
+            }
         }
     }
 
@@ -185,12 +185,14 @@ public class ClientLocalGame implements GameScene {
     public void onKeyReleased(KeyEvent e) {
         if (player != null) {
             player.setDirectionKeyRelease(e.getCode().getCode());
-            Serializer.sendPacketUdp(
-                    client.getUdpChannel(),
-                    client.getServerIp(),
-                    client.getServerPortUdp(),
-                    new PlayerInput(player.getDirection(), player.getPosition(), sequenceNumber.getAndIncrement())
-            );
+            if (client.getUdpChannel().isActive()) {
+                Serializer.sendPacketUdp(
+                        client.getUdpChannel(),
+                        client.getServerIp(),
+                        client.getServerPortUdp(),
+                        new PlayerInput(player.getDirection(), player.getPosition(), sequenceNumber.getAndIncrement())
+                );
+            }
 
             if (e.getCode().getCode() == 32) {
                 client.getTcpChannel().writeAndFlush(new Ready());

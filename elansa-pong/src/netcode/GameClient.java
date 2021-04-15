@@ -37,6 +37,8 @@ public class GameClient {
     private DisplayMessage livesBoard;
     private DisplayMessage eliminationNotification;
 
+    private GameLoop gameLoop;
+
     public GameClient(String serverIp, int serverPortTcp, int serverPortUdp) {
         this.serverIp = serverIp;
         this.serverPortTcp = serverPortTcp;
@@ -103,6 +105,9 @@ public class GameClient {
         if (tcpChannel != null) {
             tcpChannel.close();
         }
+        if (gameLoop != null) {
+            gameLoop.stop();
+        }
     }
 
     /**
@@ -115,8 +120,8 @@ public class GameClient {
 
         ClientLocalGame game = new ClientLocalGame(this);
         Canvas canvas = game.generateRenderableComponent(500, 500);
-        GameLoop loop = new GameLoop(game, canvas);
-        loop.start();
+        gameLoop = new GameLoop(game, canvas);
+        gameLoop.start();
 
         StackPane pane = new StackPane();
         pane.getChildren().add(canvas);

@@ -250,7 +250,9 @@ public class Spin extends AbstractLocalGame {
         new Obstacle(
             "Spinner0",
             new Collider[]{
-                    new CircleCollider(new Vec2d(0.0, 0.0), 0.05),
+                    new CircleCollider(
+                            new Vec2d(0.5, 0.5).add(spinnerOffsets[0]),
+                            0.05),
             },
             new int[]{0, 0, 0},
             true,
@@ -259,7 +261,12 @@ public class Spin extends AbstractLocalGame {
         new Obstacle(
             "Spinner2",
             new Collider[]{
-                    new RectangleCollider(new Vec2d(0.0, 0.0), 0.05, 0.05, Math.PI/4),
+                    new RectangleCollider(
+                            new Vec2d(0.5, 0.5).add(spinnerOffsets[1]),
+                            0.05,
+                            0.05,
+                            Math.PI/4
+                    ),
             },
             new int[]{0, 0, 0},
             true,
@@ -461,9 +468,13 @@ public class Spin extends AbstractLocalGame {
 
         // Update spinners
         for (int i = 0; i < spinners.length; i++) {
-            spinners[i].setPosition(
-                new Vec2d(0.5, 0.5).add(spinnerOffsets[i].rotate(elapsedTime * spinnerAngularVelocity[i]))
-            );
+            // Each spinner obstacle has 1 collider
+            spinners[i]
+                    .getColliders()
+                    .get(0)
+                    .setPosition(
+                        new Vec2d(0.5, 0.5).add(spinnerOffsets[i].rotate(elapsedTime * spinnerAngularVelocity[i]))
+                    );
         }
 
         // Progress Animation

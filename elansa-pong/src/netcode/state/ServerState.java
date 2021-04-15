@@ -226,19 +226,21 @@ public class ServerState {
     }
 
     public void onPlayerInput(InetSocketAddress sender, PlayerInput packet) {
-        for (SocketAddress tcpSocket : playerDataMap.keySet()) {
-            InetSocketAddress tcpAddress = (InetSocketAddress) tcpSocket;
-            ServerPlayerData playerData = playerDataMap.get(tcpSocket);
+        if (gameStarted) {
+            for (SocketAddress tcpSocket : playerDataMap.keySet()) {
+                InetSocketAddress tcpAddress = (InetSocketAddress) tcpSocket;
+                ServerPlayerData playerData = playerDataMap.get(tcpSocket);
 
-            // Find player data associated with packet received
-            if (tcpAddress.getHostName().equals(sender.getHostName()) && playerData.getUdpPort() == sender.getPort()) {
-                // Check sequence number
-                if (playerData.getLastReceivedSequenceNumber() < packet.getSequenceNumber()) {
-                    playerData.setLastReceivedSequenceNumber(packet.getSequenceNumber());
-                    localGame.getPlayers()[playerData.getPlayerNumber()].setPosition(packet.getPosition());
-                    localGame.getPlayers()[playerData.getPlayerNumber()].setDirection(packet.getDirection());
+                // Find player data associated with packet received
+                if (tcpAddress.getHostName().equals(sender.getHostName()) && playerData.getUdpPort() == sender.getPort()) {
+                    // Check sequence number
+                    if (playerData.getLastReceivedSequenceNumber() < packet.getSequenceNumber()) {
+                        playerData.setLastReceivedSequenceNumber(packet.getSequenceNumber());
+                        localGame.getPlayers()[playerData.getPlayerNumber()].setPosition(packet.getPosition());
+                        localGame.getPlayers()[playerData.getPlayerNumber()].setDirection(packet.getDirection());
+                    }
+                    break;
                 }
-               break;
             }
         }
     }
