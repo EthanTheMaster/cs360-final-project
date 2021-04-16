@@ -5,7 +5,7 @@
 
 # Design
 ## The Game Loop
-Because our game is an interactive program that updates in real time, we will need a sort of abstraction that handles updating the game in real time while also receiving user input. It achieve this goal we will introduce the idea of a **game loop**. At a high level a game loop will involve the following steps
+Because our game is an interactive program that updates in real time, we will need a sort of abstraction that handles updating the game and responding to user inputs in real time. To achieve this goal we will introduce the idea of a **game loop**. At a high level a game loop will involve the following steps
 
 1. Respond to user input
 2. Update the game state
@@ -14,7 +14,7 @@ Because our game is an interactive program that updates in real time, we will ne
 
 where the "game state" is any sort of abstract representation of the game in the moment. The game state could for example involve the positions and velocities of the players and ball. 
 
-When the game responds to user input, it could for example update the velocities of the players. During the update phase, the game could then move all the players and ball in the direction of their velocity or update them in accordance with physical laws. Finally, with the updated state, the game is rendered to the screen, and the process starts over. This overview forms the basis of an interactive video game.
+When the game responds to user input, it could for example update the velocities of the players. During the update phase, the game could then move all the players and ball in the direction of their velocity or update them in accordance with their interactions with other objects. Finally, with the updated state, the game is rendered to the screen, and the process starts over. This overview forms the basis of an interactive video game.
 
 With the game loop covered at a high level, we will make an interface called `GameScene` that captures each stage of the game loop so that it can inevitably be driven by a sort of looping construction. In the `GameScene`, there will be methods that handle keyboard events as follow
 ```java
@@ -42,7 +42,7 @@ Next, any game scene implementing `GameScene` needs to specify how the game stat
  */ 
 void updateState(long currentTime);
 ```
-This method will be called by the game loop to advance the game state which typically involves updating the position of game objects. We need to to pass in a `currentTime: long` to decouple the game updates from the computer hardware's power. Consider two computers with two different CPUs. On the faster CPU the game loop will execute at a higher frequency than the slower computer which means the faster CPU will update the game more often. If implemented without care, the game may run at a higher speed on the faster computer giving an inconsistent experience across different hardwares. To remedy this issue, every time the game is updated, the time in nanoseconds must be supplied so that the game can determine the proper way to update the state so that the game state is tied to time that has passed and not hardware power. Thus even if one were to play the game on different computers, the experience will feel relatively similar as one's experience with time does not often change. 
+This method will be called by the game loop to advance the game state which typically involves updating the position of game objects. We need to to pass in a `currentTime: long` to decouple the game updates from the computer hardware's power. Consider two computers with two different CPUs. On the faster CPU the game loop will execute at a higher frequency than the slower computer which means the faster CPU will update the game more often. If implemented without care, the game may run at a higher speed on the faster computer giving an inconsistent experience across different hardwares. To remedy this issue, every time the game is updated, the time in nanoseconds must be supplied so that the game can determine the proper way to update the state in accordance with time so that the progression of the game is not tied to the underlying hardware speed. Thus even if one were to play the game on different computers, the experience will feel relatively similar as one's experience with time does not often change. 
 
 Finally the `GameScene` needs a way to render the scene which means the following method must implemented
 ```java
@@ -54,7 +54,7 @@ void render(Canvas canvas);
 ```
 The `Canvas` object is from `javafx.scene.canvas.Canvas` and any sort of custom render code for the `GameScene` should perform all draw operations on this `Canvas`.
 
-Finally, as a convenience method `GameScene` should have a default method called `generateRenderableComponent(int, int) -> Canvas`. This method essentially creates a `Canvas` object for us and configures it to handle keyboard inputs. It will take two integers which parametrizes the returned `Canvas`'s width and height, respectively. A `Canvas` will first be created and its key pressed handler will be attached to the `onKeyPressed` method in `GameScene`. Similarly, the key released handler will be attached to the `onKeyReleased` method in `GameScene`. Thus all keyboard events on the `Canvas` will be dispatched to class implementing `GameScene`. However in the current state, the `Canvas` will not accept keyboard inputs as it is not "focused." The `Canvas` can received keyboard inputs by notifying JavaFX that the `Canvas` can be "focused" on. Then we just request the focus be on the `Canvas` and return the `Canvas` object. In code the method would resemble
+Finally, as a convenience method `GameScene` should have a default method called `generateRenderableComponent` which takes as input some desired dimensions of the canvas (in pixels) and returns a canvas of that size. This method essentially creates a `Canvas` object for us and configures it to handle keyboard inputs. It will take two integers which parametrizes the returned `Canvas`'s width and height, respectively. A `Canvas` will first be created and its key pressed handler will be attached to the `onKeyPressed` method in `GameScene`. Similarly, the key released handler will be attached to the `onKeyReleased` method in `GameScene`. Thus all keyboard events on the `Canvas` will be dispatched to class implementing `GameScene`. However in the current state, the `Canvas` will not accept keyboard inputs as it is not "focused." The `Canvas` can received keyboard inputs by notifying JavaFX that the `Canvas` can be "focused" on. Then we just request the focus be on the `Canvas` and return the `Canvas` object. In code the method would resemble
 ```java
 /**
  * Creates a Canvas object configured to be compatible with the GameScene
@@ -116,7 +116,7 @@ The work up to this point is represented diagrammatically below.
 ![Game Loop UML](document_assets/gameloop_uml_img.png)
 
 ## The Physics Engine
-To make computation easier we will develop a helper class called `Vec2d`. This class represents 2 dimensional vectors and has methods that can execute common vector operations. In this class there are 2 fields, both of which are doubles: `x` and `y`. For brevity assume that the canonical constructor is used and setters and getters for `x` and `y` are implemented. Mathematically, an instance of `Vec2d` will encode the vector $\left\langle x, y \right\rangle$. This class should also implement `Serializable`.
+To make computation easier we will develop a helper class called `Vec2d`. This class represents 2 dimensional vectors and has methods that can execute common vector operations. In this class there are 2 fields, both of which are `double`s: `x` and `y`. For brevity assume that the canonical constructor is used and setters and getters for `x` and `y` are implemented. Mathematically, an instance of `Vec2d` will encode the vector $\left\langle x, y \right\rangle$. This class should also implement `Serializable`.
 
 First, we will define a method `scale` which takes a `double` `c` and returns a new vector that is a scaled version of the current vector. To do this, we simply multiply each component of the vector by `c`.
 ```java
@@ -142,7 +142,7 @@ public Vec2d add(Vec2d other) {
     );
 }
 ```
-Similarly subtraction is defined but the method is called `sub` and the components are subtracted as opposed to added.
+Similarly subtraction is defined but the method is called `sub` and the components are subtracted as opposed to being added.
 ```java
 /**
  * Computes the difference between the current vector with another vector
@@ -179,7 +179,7 @@ public double mag() {
 We will also implement a method `projectOnto` which takes another `Vec2d` and returns a `Vec2d` representing the projection. Thus `a.projectOnto(b)` in mathematical notation would be $\text{proj}_\mathbf{b}\mathbf{a}$. Using linear algebra, this can be computed with 
 
 $$
-    \text{proj}_{\mathbf{b}}\mathbf{a} = \left(\mathbf{a} \cdot \frac{\mathbf{b}}{\lVert \mathbf{b} \rVert}\right) \mathbf{b}
+    \text{proj}_{\mathbf{b}}\mathbf{a} = \left(\mathbf{a} \cdot \frac{\mathbf{b}}{\lVert \mathbf{b} \rVert}\right) \frac{\mathbf{b}}{\lVert \mathbf{b} \rVert}
 $$
 ```java
 /**
@@ -249,7 +249,7 @@ The interface should extend `Serialiable` so that it can be converted into bytes
 
 Notice that we are making use of `Vec2d` to describe a physical property like position. In any event, the method of particular interest is `collide` which every class implementing `Collider` must create. This method is used to check collision between two `Collider` objects.
 
-The first `Collider` we will create will be a `RectangleCollider`. A `RectangleCollider` is defined by the position of its top-left corner which we will call the `origin: Vec2d`. The collider is also defined by the following doubles: `width`, `height`, and `angle`. Note that `angle` should be in radians and it describes how much the rectangle is rotated about its origin. See the figure below for an illustration. In the image $(x, y)$ is `origin` and $\theta$ is `angle`.
+The first `Collider` we will create will be a `RectangleCollider`. A `RectangleCollider` is defined by the position of its top-left corner which we will call the `origin: Vec2d`. The collider is also defined by the following `double`s: `width`, `height`, and `angle`. Note that `angle` should be in radians and it describes how much the rectangle is rotated about its origin. See the figure below for an illustration. **From this point on, we will that the positive $y$ direction is down, similar to the screen space coordinate system.** In the image $(x, y)$ is `origin` and $\theta$ is `angle`.
 
 ![Rectangle Collider](document_assets/rect_def.png)
 
@@ -286,8 +286,8 @@ $$
 The code would resemble 
 ```java
 /**
- * Computes the vertices of the rotated rectangle along and also returns 
- * the local coordinate space
+ * Computes the vertices of the rotated rectangle and also an
+ * orthonormal basis forming the local coordinate space
  * @return a list of vectors where the first 4 vectors are the vertices 
  * and the last two are the basis vectors of the local coordinate space
  */
@@ -306,11 +306,11 @@ public Vec2d[] computeVerticesAndBasis() {
     };
 }
 ```
-Before we implement `collide` from `Collider` for `RectangleCollider`, we should introduce another collider: `CircleCollider`. A `CircleCollider` is parameterized by the following fields: `center: Vec2d` and `radius: double`. Both of these fields should have setters and getters, and the canonical constructor should be used to populate these fields. Furthermore `getPosition` and `setPosition` from `Collider` should access and mutate `center` as the position. 
+Before we implement `collide` from `Collider` for `RectangleCollider`, we should introduce another collider: `CircleCollider`. A `CircleCollider` is parametrize by the following fields: `center: Vec2d` and `radius: double`. Both of these fields should have setters and getters, and the canonical constructor should be used to populate these fields. Furthermore `getPosition` and `setPosition` from `Collider` should access and mutate `center` as the position. 
 
 We now introduce the collision detection for `RectangleCollider`. The `collide` method from the `Collider` interface has as parameter an `other` object of type `Collider`. Thus it is sensible to break up the collision detection depending on the type `Collider` of collider passed.
 
-For the first case, assuming that `other` is a `RectangleCollider`, we will assert that a collision has occurred iff the vertex of one `RectangleCollider` lies within the boundaries of the other. Therefore, let `thisVerticesAndBasis = this.computeVerticesAndBasis()` and `otherVerticesAndBasis = other.computeVerticesAndBasis()`. We need to check if `other`'s vertices lie in `this`'s region. For each vertex `v` in `otherVerticesAndBasis[0:4]`, compute the displacement vector `d: Vec2d` of `v` relative to `this.origin`. That is 
+For the first case, assuming that `other` is a `RectangleCollider`, we will assert that a collision has occurred iff the vertex of one `RectangleCollider` lies within the boundaries of the other. This definition of a collision between rectangles is not completely accurate but will suffice for our purposes. More complex algorithms exist to determine collisions between convex shapes, like rectangles. For more information see the Gilbert-Johnson-Keerthi algorithm. In any event, let `thisVerticesAndBasis = this.computeVerticesAndBasis()` and `otherVerticesAndBasis = other.computeVerticesAndBasis()`. We need to check if `other`'s vertices lie in `this`'s region. For each vertex `v` in `otherVerticesAndBasis[0:4]`, compute the displacement vector `d: Vec2d` of `v` relative to `this.origin`. That is 
 
 $$
 \mathbf{d} = \mathbf{v} - \mathtt{this.origin}
@@ -333,7 +333,7 @@ $$
 0 \leq c_2 \leq \mathtt{this.height}
 $$
 
-then `v` is in the bound of `this`'s region and we can return true. We now do the same analysis but interchange the roles of `this` and `other` to check whether `this`'s vertices lie within `other`'s bound. The analysis is omitted and the code below should clear any confusion.
+then `v` is in the bound of `this`'s region and we can return `true`. We now do the same analysis but interchange the roles of `this` and `other` to check whether `this`'s vertices lie within `other`'s bound. The analysis is omitted and the code below should clear any confusion.
 ```java
 public boolean collide(Collider other) {
     if (other instanceof RectangleCollider) {
@@ -430,10 +430,13 @@ public Vec2d findClosestPoint(Vec2d point) {
     c1 = Math.min(width, c1);
     c2 = Math.min(height, c2);
 
-    return basis1.scale(c1).add(basis2.scale(c2)).add(thisVerticesAndBasis[0]);
+    return basis1
+            .scale(c1)
+            .add(basis2.scale(c2))
+            .add(thisVerticesAndBasis[0]);
 }
 ```
-Now that we have a way of finding the closest point, to determine rectangle on circle collision, we simply have to find the closest point on the rectangle to the circle and check if the distance from the circle's center to the closest point is less than or equal to the circle's radius. Diagrammatically the figure below argues the reasoning for this collision check.
+Now that we have a way of finding the closest point, to determine rectangle on circle collision, we simply have to find the closest point on the rectangle to the circle's center and check if the distance from the circle's center to the closest point is less than or equal to the circle's radius. Diagrammatically the figure below argues the reasoning for this collision check.
 
 ![Rectangle on Circle Collision](document_assets/rect_circ.png)
 
@@ -447,7 +450,7 @@ public boolean collide(Collider other) {
         Vec2d closestPoint = findClosestPoint(otherCircle.getCenter());
         return 
             closestPoint.sub(otherCircle.getCenter()).mag() 
-        <= 
+            <= 
             otherCircle.getRadius();
     }
     return false;
@@ -478,9 +481,9 @@ The diagram below shows the components of the physics engine.
 ![Physics UML Diagram](document_assets/physics_uml_img.png)
 
 ## Entities
-Up to this point, we can implement the key objects in the game pong. There are obstacles, players, and a ball. Unifying all these objects are that they are game objects present in the game which we will describe as an "entity". 
+Up to this point, we can implement the key objects in the game pong. There are obstacles, players, and a ball. Unifying all these objects are that they are game objects present in the game each of which we will describe as an "entity". 
 
-To unify all game objects under the same framework, we will create an abstract `Entity` class. This class will have the following protected fields that children can inherit: `id: String`, `position: Vec2d`, `velocity: Vec2d`, and `colliders: ArrayList<Collider>`. These fields will characterize an `Entity` and provide enough information for the dynamics of an entity. Setters and getters for all these fields should be made.
+To unify all game objects under the same framework, we will create an abstract `Entity` class. This class will have the following protected fields that children can inherit: `id: String`, `position: Vec2d`, `velocity: Vec2d`, and `colliders: ArrayList<Collider>`. These fields will characterize an `Entity` and for our purposes provide enough information to characterize the dynamics of an entity. Setters and getters for all these fields should be made.
 
 Subclasses of `Entity` should have some way to be rendered to the screen. Thus `Entity` will have an abstract method `render` which takes a `Canvas` object. 
 ```java
@@ -500,12 +503,12 @@ Furthermore, when an `Entity` collides with another `Entity` the entities should
  */
 public abstract void onCollision(Entity other, Collider otherCollider);
 ```
-Every `Entity` has associated with it a list of `Collider`s in the `colliders` field. Thus it would be helpful to have a method `collidesWith` that takes another `Entity` called `other` and returns `null` if the two entities did not collide but returns two `Collider`s if a collision did take place where the two `Collider`s are the colliders that caused a collision. Checking for a collision between two entities is straightforward. We simply check every pair of `Collider`s in both entities and run the `collide` method to check if the pair collides.
+Every `Entity` has associated with it a list of `Collider`s in the `colliders` field. Thus it would be helpful to have a method `collidesWith` that takes another `Entity` called `other` and returns `null` if the two entities did not collide but returns two `Collider`s if a collision did take place where the two `Collider`s are the colliders that caused a collision. Checking for a collision between two entities is straightforward. We simply check every pair of `Collider`s in both entities and run the `collide` method to check if the pair collides. Again, there are more complex approaches that intelligently determine which `Collider`s are likely to collide, but this naive approach will suffice for our purposes.
 ```java
 /**
  * Checks if this entity collides with another entity
  * @param other the entity to check collision with
- * @return return either null or 2 colliders. Null is returned if there is 
+ * @return either null or 2 colliders where null is returned if there is 
  * no collision, but if there is a collision the first collider will be 
  * the collider in this entity and the second collider will be the 
  * collider in the other entity.
@@ -527,15 +530,21 @@ Finally, `Entity` should implement `Serializable` so that they can be saved to d
 ### The Obstacle Entity
 An `Obstacle` class extending the `Entity` class will essentially be the `Entity` form of composite `Collider`s. The idea is that we would like to combine `Collider`s into one shape which can be deemed as an `Entity` for the game engine to actuate. 
 
-`Obstacle`s should have a color assigned. The color will be representing using RGB in `colorRgb: int[]`. We should also have the ability to choose whether the `Obstacle` is visible which will be in a field `isVisible: boolean`. Invisible `Obstacle`'s allow for trigger zones where some action can trigger if some collision occurs. For example when the ball leaves the screen we could put trigger zones outside the field to reset the game. With this in mind, the last field in an `Obstacle` should be a `trigger: CollisionEventHandler` where `CollisionEventHandler` is an interface whose only method requires that the `Entity` and its `Collider` that cause the collision event to occur be passed. Additionally, it should extend `Serializable`.
+`Obstacle`s should have a color assigned. The color will be representing using RGB in `colorRgb: int[]`. We should also have the ability to choose whether the `Obstacle` is visible which will be in a field `isVisible: boolean`. Invisible `Obstacle`'s allow for "trigger zones" where some action can be triggered if some collision occurs. For example when the ball leaves the screen we could put trigger zones outside the field to reset the game. With this in mind, the last field in an `Obstacle` should be a `trigger: CollisionEventHandler` where `CollisionEventHandler` is an interface whose only method requires that the `Entity` and its `Collider` that cause the collision event to occur be passed. Additionally, it should extend `Serializable`.
 ```java
 public interface CollisionEventHandler extends Serializable {
+    /**
+     * This method is invoked when a collision is detected
+     * @param other the entity that triggered a collision
+     * @param otherCollider a collider in the other entity that
+     * triggered the collision
+     */
     void handleCollision(Entity other, Collider otherCollider);
 }
 ```
 Whenever a developer creates an `Obstacle`, a `CollisionEventHandler` can be passed to allow for customizable game logic.
 
-Setters and getters for all the fields should be made. However, special care is taken for the constructor. 
+Setters and getters for all the fields should be made. However, special care is taken for the constructor. Note that the term "hit zone" merely describes the idea of a zone that can detect hits/collisions. 
 ```java
 public Obstacle(
     String name, 
@@ -633,9 +642,9 @@ public void onCollision(Entity other, Collider otherCollider) {
 Note that a developer may choose to not pass a `CollisionEventHandler`. In which case, we simply do nothing when a collision occurs.
 
 ### The Player Entity
-The player is a rectangular paddle. For the `Player` class which also extends `Entity`, it is sensible to have a `RectangularCollider` called `collider` as one of the fields. This `Collider` will also parameterize the player's width and height. We would also like the `Player` to have a property `moveSpeed: double` that dictates how fast the player moves. For example if `moveSpeed = 0.3`, then that implies that the player can move 30% of the screen in 1 second. We also should have a field `direction: int` which takes on the values `{-1, 0, 1}`. The value of direction determines if the `Player` is currently moving in the positive direction associate with it which we will call `positiveDirection: Vec2d`. Recall that `Player`s may be on the top/bottom or left/right sides of the screen so the positive direction will be down and right, respectively. Next we need to consider the keys that move the player. The fields `directionKeyPositive: int` and `directionKeyNegative: int` should be in `Player` and are the key codes on the keyboard associated with positive and negative movement. Finally, there needs to be a field `lastContactFreePosition: Vec2d` which will be used to revert the `Player` back to a position that is hopefully collision free. 
+The player is a rectangular paddle. For the `Player` class which also extends `Entity`, it is sensible to have a `RectangularCollider` called `collider` as one of the fields. This `Collider` will also parametrize the player's width, height, and position. We would also like the `Player` to have a property `moveSpeed: double` that dictates how fast the player moves. For example if `moveSpeed = 0.3`, then that implies that the player can move 30% of the screen in 1 second. We also should have a field `direction: int` which takes on the values `{-1, 0, 1}`. The value of direction determines if the `Player` is currently moving in the positive direction associate with it which we will call `positiveDirection: Vec2d`. Recall that `Player`s may be on the top/bottom or left/right sides of the screen so the positive direction will be down and right, respectively. Next we need to consider the keys that move the player. The fields `directionKeyPositive: int` and `directionKeyNegative: int` should be in `Player` and are the key codes on the keyboard associated with positive and negative movement. Finally, there needs to be a field `lastContactFreePosition: Vec2d` which will be used to revert the `Player` back to a position that is hopefully collision free. 
 
-Setters and getters should be made only for `moveSpeed` and `direction` as the other fields are "internal fields" that should not be exposed to the outside world.
+Setters and getters should be made only for `moveSpeed`, `direction`, `directionKeyPositive`, and `directionKeyNegative` as the other fields are "internal fields" that should not be exposed to the outside world.
 
 Making the constructor is slightly less straightforward as we need to take into account the fields of `Entity`. In any event, the code below is self-explanatory and merely fills in the fields mentioned above and the fields in `Entity`. It should be noted that we are assuming that `Player`s created are initialized to in a collision free state. When creating the `RectangleCollider` for the `Player`, we also need to add this collider to `colliders` in `Entity`. Otherwise, the `Player` would effectively have no colliders in the eyes of the engine.
 ```java
@@ -741,7 +750,7 @@ public void setDirection(int direction) {
     this.velocity = positiveDirection.scale(direction * moveSpeed);
 }
 ```
-Because we might want an automated player in the future. We will create a method `setDirectionAutomatically` which takes a list of `Ball`s called `balls: [Ball]` and set the direction so that the player can bounce the closest ball. Let $\mathbf{u}$ be the `positiveDirection` vector, $\mathbf{b}_x$ be the position of the closest `Ball` in `balls`, $\mathbf{x}$ be the `Player`'s center, and $\mathbf{v} = \mathbf{b}_x - \mathbf{x}$. We can compute $\mathbf{x}$ by averaging the vertices of the `Player`'s `RectangleCollider`. We will also define player's paddle span to be $S = \max{\left({\mathtt{collider.width}, \mathtt{collider.height}}\right)}$.
+Because we might want an automated player in the future. We will create a method `setDirectionAutomatically` which takes a list of `Ball`s called `balls: ArrayList<Ball>` and set the direction so that the player can bounce the closest ball. Let $\mathbf{u}$ be the `positiveDirection` vector, $\mathbf{b}_x$ be the position of the closest `Ball` in `balls`, $\mathbf{x}$ be the `Player`'s center, and $\mathbf{v} = \mathbf{b}_x - \mathbf{x}$. We can compute $\mathbf{x}$ by averaging the vertices of the `Player`'s `RectangleCollider`. We will also define player's paddle span to be $S = \max{\left({\mathtt{collider.width}, \mathtt{collider.height}}\right)}$.
 
 ![Automated Player Movement](document_assets/automated_player.png)
 
@@ -753,7 +762,7 @@ $$
 
 From both geometry and linear algebra, the above equation implies that $\mathbf{u} \cdot \mathbf{v}$ is the (signed) distance the ball is from the paddle's center in the direction of $\mathbf{u}$. 
 
-If the absolute value of this quantity is less that $\frac{S}{2}$, then the paddle does not need to move because the ball is in the "span" of the paddle and thus can be reached. However if the paddle cannot reach the ball, we need to move the paddle.
+If the absolute value of this dot product is less that $\frac{S}{2}$, then the paddle does not need to move because the ball is in the "span" of the paddle and thus can be reached. However if the paddle cannot reach the ball, we need to move the paddle.
 
 The direction we should move the paddle is completely dictated by the sign of the $\cos{\theta}$ term which matches the sign of $\mathbf{u} \cdot \mathbf{v}$ as $\lVert \mathbf{v} \rVert$ is positive. If $\mathbf{u} \cdot \mathbf{v}$ is positive, the paddle needs to move in the positive direction, and move in the negative direction otherwise. See the figure above to visualize this argument.
 ```java
@@ -797,7 +806,7 @@ public void setDirectionAutomatically(ArrayList<Ball> balls) {
 }
 ```
 ### The Ball Entity
-Like the `Player` class, the `Ball` will be characterized by its `Collider` `collider: BallCollider` which holds both the `Ball`'s position and radius. The `Ball` class will also have a `lastContactFreeLocation: Vec2d` to help revert the `Ball` back to a collision free state. The constructor is shown below and it follows the same format as the previous two entities.
+Like the `Player` class, the `Ball` will be characterized by its `Collider` `collider: BallCollider` which holds both the `Ball`'s position and radius. The `Ball` class will also have a `lastContactFreeLocation: Vec2d` to help revert the `Ball` back to a hopefully collision free state. The constructor is shown below, and it follows the same format as the previous two entities.
 ```java
 public Ball(
     String name,
@@ -891,7 +900,7 @@ Diagrammatically what we have developed in this section is shown below
 ## Implementing Pong with the Engine
 To make generating different variants of pong seamless, we will first make a generalized framework that characterizes different variants of pong. The class we will make is called `AbstractLocalGame` which implements `GameScene` and is considered `abstract`. 
 
-In every game of pong, there will be a list of entities that the engine will maintain. We further subdivide this list into two categories: static and dynamic entities. Static entities are entities that do not move as the game progresses and will allow for "caching" in a networked game. Static entities primarily include the environment and trigger zones. Dynamic entities are entities that move and thus in a networked game should be part of every broadcasted update. Therefore we will need the following fields in this `AbstractLocalGame`.
+In every game of pong, there will be a list of entities that the engine will maintain. We further subdivide this list into two categories: static and dynamic entities. Static entities are entities that do not move as the game progresses and will allow for "caching" in a networked game. Static entities primarily include the environment and trigger zones. Transmitting these static objects frequently is wasteful of network resources, so it would be beneficial to transmit them infrequently. In contrast, dynamic entities are entities that move and thus in a networked game should be part of every broadcasted update which occurs frequently. Therefore we will need the following fields in this `AbstractLocalGame`.
 ```java
 protected ArrayList<Entity> entities = new ArrayList<>();
 protected ArrayList<Entity> staticEntities = new ArrayList<>();
@@ -963,7 +972,7 @@ public abstract void resetGame();
 ```
 At this point, the only task left to making a functional local game is to give a concrete implementation of this `AbstractLocalGame` and to display the game on a user interface. 
 
-The latter is fairly straightforward. Once simply takes the `Canvas` returned from `generateRenderableComponent` method, place it in a `Pane` which goes into a `Scene`, adding the `Scene` to the JavaFX stage, and running the `start` method on a `GameLoop` object made from an implementation of the `AbstractLocalGame`. The code below gives an example for how this might be implemented in JavaFX.
+The latter goal is fairly straightforward. One simply takes the `Canvas` returned from `generateRenderableComponent` method, place it in a `Pane` which goes into a `Scene`, add the `Scene` to the JavaFX stage, and run the `start` method on a `GameLoop` object made from an implementation of the `AbstractLocalGame`. The code below gives an example for how this might be implemented in JavaFX.
 ```java
 
 public class TestApp extends Application {
@@ -1025,7 +1034,7 @@ In the above code, we merely print out events that occur in the game as opposed 
 ## Points of Consideration When Implementing `AbstractLocalGame`
 * Make sure to call the methods in `gameEventHandler` when a notable event has occurred. In particular these methods should be invoked in the `deductLife` method.
 * Make a field `lastRecordedTime: Long = null` that is first populated on the first call to `updateState`. Every subsequent call to `updateState` should compute the "delta time" between the current time of the `updateState` call and the `lastRecordedTime`. The use of a "delta time" decouples the game updating from the computer's hardware speed.
-  * This "delta time" should be used to update all entities in the `entities` list by changing the positions in accordance with the delta time each entity's velocity. For example the loop below could be used to update the positions.
+  * This "delta time" should be used to update all entities in the `entities` list by changing the positions in accordance with the delta time and each entity's velocity. For example the loop below could be used to update the positions.
   ```java
     for (Entity entity : entities) {
         entity.setPosition(
@@ -1048,32 +1057,32 @@ for (int i = 0; i < entities.size()-1; i++) {
     }
 }
 ```
-* `updateState` should for call the `setDirectionAutomatically` for all automated players.
+* `updateState` should call the `setDirectionAutomatically` for all automated players.
 
 * Player activation and deactivation should alter `staticEntities` and `dynamicEntities` in a suitable way and call `updateEntitiesList`. The game will certainly be different upon the addition and deletion of players.
 
-* There should be a "cooldown" period prior to the start of the game and after a game reset, so that players have an opportunity to get ready. A cool down period also gives an opportunity to present information on screen.
+* There should be a "cool down" period prior to the start of the game and after a game reset, so that players have an opportunity to get ready. A cool down period also gives an opportunity to present information on screen.
 
 * Once satisfied with the level design, exporting the game to a file on disk should be done. The following code is a quick and easy way to use Java serialization to export the `AbstractLocalGame` to a file.
 ```java
-    AbstractLocalGame game = new Game();
-    FileOutputStream fileOutputStream = 
-            new FileOutputStream(mapName + ".map");
-    ObjectOutputStream objectOutputStream = 
-            new ObjectOutputStream(fileOutputStream);
-    objectOutputStream.writeObject(game);
-    objectOutputStream.flush();
-    fileOutputStream.close();
-    objectOutputStream.close();
+AbstractLocalGame game = new Game();
+FileOutputStream fileOutputStream = 
+        new FileOutputStream(mapName + ".map");
+ObjectOutputStream objectOutputStream = 
+        new ObjectOutputStream(fileOutputStream);
+objectOutputStream.writeObject(game);
+objectOutputStream.flush();
+fileOutputStream.close();
+objectOutputStream.close();
 ```
 
 * Detecting when a point has been scored against a player can easily be done by placing an invisible "killzone" `Obstacle` behind a player. The `trigger` for this `Obstacle` should check that the entity it collided with is a `Ball`, and subsequently trigger the `deductLife` method to penalize the player that the `Obstacle` is behind. Additionally, the killzones should be added to `staticEntities` for they would not move throughout the duration of the game.
 
-* Deducting a life through the `deductLife` method should deactivate a player when that player's lives reaches 0. When a player's lives reaches 0, a call to `onPlayerElimination` in the `GameEventHandler`. Moreover, if there is one active player left, a winner has been determined so `onWinnerDetermined` should also be called in the `GameEventHandler`. All life deductions, however, should have a call to `onLifeChange` in the `GameEventHandler`. 
+* Deducting a life through the `deductLife` method should deactivate a player when that player's lives reaches 0. When a player's lives reaches 0, a call to `onPlayerElimination` in the `GameEventHandler` is dispatched. Moreover, if there is one active player left, a winner has been determined so `onWinnerDetermined` should also be called in the `GameEventHandler`. All life deductions should additionally have a call to `onLifeChange` in the `GameEventHandler`. 
 
-* If player on player collision is undesirable, one could create "block" `Obstacle`s for each corner of the board. Whenever the `activate` method is invoked, the `activePlayers` array should be updated accordingly and a block should be placed between player `i` and player `j` (where `i != j` and player `i` and player `j` are adjacent on the board) iff `activePlayers[i] && activePlayers[j]`. These block `Obstacle`s should also be added to the `staticEntities` list. One must also consider removing these blocks upon player deactivation.
+* If player on player collision is undesirable, one could create "block" `Obstacle`s for each corner of the board. Whenever the `activatePlayer` method is invoked, the `activePlayers` array should be updated accordingly and a block should be placed between player `i` and player `j` (where `i != j` and player `i` and player `j` are adjacent on the board) iff `activePlayers[i] && activePlayers[j]`. These block `Obstacle`s should also be added to the `staticEntities` list. One must also consider removing these blocks upon player deactivation.
 
-## How a Client Initiates a Local Game
+## How a Client/User Initiates a Local Game
 The client will be presented with a screen resembling that of the figure below.
 
 ![Local Level Select](document_assets/local_game_ui_mockup.png)
@@ -1113,7 +1122,7 @@ From this point, we register the players by looping through `chosenPlayerDesigna
 # Design Sketch: Playing the Game over a Network
 In order to play the game over a network, we will use a client-server architecture. A central server will host a game, and clients connect to this server. The server will act as a "source of truth" by broadcasting updates to the clients, and these updates are how the clients are informed of the current game state from which clients can base their decisions.
 
-**Because of the variability in how networking is handled by various libraries and framework, the following discussion will merely sketch out the ideas of implementing the game to be playable over a network as different. The technical details for how to realize this design sketch will greatly differ across different libraries and frameworks. There will also be scarce code examples for this reason.**
+**Because of the variability in how networking is handled by various libraries and framework, the following discussion will merely sketch out the ideas of implementing the game to be playable over a network. The technical details for how to realize this design sketch will greatly differ across different libraries and frameworks. There will also be scarce code examples for this reason.**
 
 ## Packets
 In order to communicate over a network, the game server and game clients will send packets to each other. These packets are formed by serializing Java objects and pushing the serialized object through the network. For brevity, we will simply list the classes and their fields with the understanding that constructors and getters are made and that the class implements `Serializable` in some fashion. Discussions on what these packets are for will be postponed for later, but their use are hinted through their names.
@@ -1157,20 +1166,20 @@ class Synchronization {
 ```
 
 ## Sending and Receiving Packets
-We will assume that a networking library is used such that one can respond to incoming messages on the network that are deserialized. Furthermore we will assume that the networking library handles the receiving and sending of packets asynchronously which means that the program will not block to receive not-yet-arrived messages. Handling networking events asynchronously is typically done through an "event loop" whereby a loop constantly checks for networking activity. When network activity is detected, any listeners interesting in that activity will be notified. 
+We will assume that a networking library is used such that one can respond to incoming messages on the network that are deserialized into `Packet`s. Furthermore we will assume that the networking library handles the receiving and sending of packets asynchronously which means that the program will not block to receive not-yet-arrived messages. Handling networking events asynchronously is typically done through an "event loop" whereby a loop constantly checks for networking activity. When network activity is detected, any listeners interesting in that activity will be notified. 
 
 Asynchronous operations will allow us to have a game that updates in realtime. For these reasons, the Java library Netty will be used as it satisfies these criteria and presents a high level abstraction to handle networking operations. We will not go into much details about Netty but the design of the networking portion of the game is heavily influenced by Netty's capabilities. 
 
-Packets will either be send through TCP or UDP. TCP is a networking protocol that guarantees reliability in the sense that packets cannot be lost in transmission and that packets will arrive in the order they were sent. These guarantees however comes at the cost of performance as maintaining these guarantees have overhead. For this reason we will utilize TCP to send critical information that do not need to be delivered as quickly as possible. Packets sent over TCP include all packets but the `PlayerInput` packet. When time is a constraint and we need to maximize data throughput, the UDP protocol will be utilized. Packets sent over UDP are not guaranteed to arrive nor are guaranteed to be received in the order they were sent. UDP however does guarantee that packets remain in tact and are not split. UDP has low overhead and is used for the `PlayerInput` and `Synchronization` packets. What these packets are for are discussed momentarily. 
+Packets will either be sent through TCP or UDP. TCP is a networking protocol that guarantees reliability in the sense that packets cannot be lost in transmission and that packets will arrive in the order they were sent. These guarantees however comes at the cost of performance as maintaining these guarantees creates overhead. For this reason we will utilize TCP to send critical information that do not need to be delivered as quickly as possible. Packets sent over TCP include all packets but the `PlayerInput` packet. When time is a constraint and we need to maximize data throughput, the UDP protocol will be utilized. Packets sent over UDP are not guaranteed to arrive nor are guaranteed to be received in the order they were sent. UDP however does guarantee that packets remain intact and are not split. UDP has low overhead and is used for the `PlayerInput` and `Synchronization` packets. What these packets are for are discussed momentarily. 
 
-## Setting up the Server and Client
-The classes `GameServer` and `GameClient` should be made to handle the networking operations of the server and client, respectively. To construct a `GameServer` one should pass a `hostname: String`, `portTcp: int`, `portUdp: int`, and `gameMap: File`. The first 4 parameters define where the TCP and UDP channels of the server should bind to and the last parameter defines the map that the server should let clients play on. The `GameServer` should have a `launchServer` method that creates a TCP channel on the address `hostname:portTcp` and a UDP channel on the address `hostname:portUDP`. How this is done is beyond the scope of this design, and one should refer to the networking library's documentation. 
+## Setting up the Game Server and Game Client
+The classes `GameServer` and `GameClient` should be made to handle the networking operations of the server and client, respectively. To construct a `GameServer` one should pass a `hostname: String`, `portTcp: int`, `portUdp: int`, and `gameMap: File`. The first 4 parameters define where the TCP and UDP channels of the server should bind to and the last parameter defines the map that the server should let clients play on. The `GameServer` should have a `launchServer` method that creates a TCP channel on the address `hostname:portTcp` and a UDP channel on the address `hostname:portUDP`. How this is done is beyond the scope of this design, and one should refer to the networking library's documentation. We will also not discuss the steps needed to expose the server to other computers which requires configuring firewalls and network settings, all of which are beyond the scope of this design.
 
-The `GameClient` class should be constructed from the following parameters: `serverIp: String`, `serverPortTcp: int`, and `serverPortUdp`. These parameters define what computer on the network should be contact and the ports that need to connected to in order to establish communications with the server. 
+The `GameClient` class should be constructed from the following parameters: `serverIp: String`, `serverPortTcp: int`, and `serverPortUdp`. These parameters define what computer on the network should be contacted and the ports that need to connected to in order to establish communications with the server. 
 
 There needs to be a method `establishConnection` which starts a connection to the server in accordance with the aforementioned parameters. Again, how this is done will vary depending on the library used, and the library's documentation should be consulted. It should be noted that when establishing a UDP connection on the client's side, the client should bind to address `0` which informs the operating system to find a suitable port that the outside world can use to communicate with this client over UDP. We will assume that `establishConnection` will populate two private fields `udpChannel` and `tcpChannel` in the class that can be accessed through getters to allow those instantiating the `GameClient` to send messages to the server over a channel of their choosing. 
 
-Pairing with this `establishConnection` should be a `close` method that closes all channels. Next, this `GameClient` needs a user interface through which the user can interact with. Thus there needs to be a method `launchClient` that takes a JavaFX `Stage` and fills the window with a user interface. We will be creating a class `ClientLocalGame` that implements `GameScene`, and this class should be suitable for rendering onto the window using the techniques mentioned above for local games.
+Pairing with this `establishConnection` should be a `close` method that closes all channels. Next, this `GameClient` needs a user interface through which the user can interact with. Thus there needs to be a method `launchClient` that takes a JavaFX `Stage` and fills the window with a user interface. We will be creating a class `ClientLocalGame` that implements `GameScene`, and this class should be suitable for rendering onto the window using the techniques mentioned above for non-networked, local games.
 
 Finally the `GameClient` needs to have a field `updateHandlerHook: ClientUpdateHandler` where `ClientUpdateHandler` is an interface that allows one to customize how they would like to respond to updates coming into the client from the server. The code is listed below, and it is straightforward what each method does. Each method is invoked the moment the client receives a `Packet` that matches the name and parameter in the method. Everytime a `GameClient` is constructed this `ClientUpdateHandler` should be filled in with a custom implementation. Because networking implementations details will differ, we will simply assume that one is able to invoke the correct method in `updateHandlerHook` the moment a packet arrives either via TCP or UDP.
 
@@ -1185,14 +1194,14 @@ public interface ClientUpdateHandler {
 ```
 
 ## Maintaining the Server State
-The `GameServer` should have a field `serverState: ServerState` where `ServerState` is a class that we will soon elaborate on. The `ServerState` essentially is a catch-all class that maintains the server's internal state with respect to the clients connected an data associated with them and the current state of the game.
+The `GameServer` should have a field `serverState: ServerState` where `ServerState` is a class that we will soon elaborate on. The `ServerState` essentially is a catch-all class that maintains the server's internal state with respect to the clients connected, the data associated with them, and the current state of the game.
 
 The fields in this class are `gameStarted: boolean` to keep track if the game has started, `gameMap: File` to keep track of the map being played on, `localGame: AbstractLocalGame` to keep track the progress of the game, `sequenceNumber: long` to aid in sending messages over UDP, `playerDataMap: HashMap<SocketAddress, ServerPlayerData>` to keep track of player data where `ServerPlayerData` will be explained momentarily, `availableAssignments: Stack<Integer>` to keep track available player positions, and a `localGameEventHandler: GameEventHandler` to act upon game events. This class in constructed with only parameter `gameMap: File` which is then deserialized into an `AbstractLocalGame` that is used to populate `localGame`. The `localGame` has its `GameEventHandler` set to `localGameEventHandler` which will be elaborated on in the future with respect to the appropriate actions that are taken in response to game events. The code below shows how the fields not mentioned are initialized to by default
 
 ```java
 gameStarted = false;
 sequenceNumber = 0;
-playerDataMap = HashMap::empty();
+playerDataMap = new HashMap();
 // Top of stack is on the left
 availableAssignments = [0, 1, 2, 3]
 localGameEventHandler = /*Filled in later*/
@@ -1202,13 +1211,13 @@ The `ServerPlayerData` class is a catchall class that encodes useful information
 
 We will assume that the `ServerState` is subscribed to network events. 
 
-* If a client connects to the server by sending the `Connect(portUdp)`, first we check whether the game has started by looking at `gameStarted`. If the game has started, we close the client's connection and tell them that a game is in progress and to come back later. If a game has not started, we `pop` from `availableAssignments` to get a `playerNumber: int`. We then activate the player in the `localGame`. Next, we place into `playerDataMap` a key-value pair where the key is the client's TCP address and port pair and the value is a `ServerPlayerData` object constructed with the `portUdp` provided in the `Connect` packet, `playerNumber`, and the TCP channel of the client. Finally we send to the client a `PlayerAssignment` packet with the following parameters: `playerNumber` and `localGame.getPlayers[playerNumber]`. We then send a `Synchronization` packet over TCP to all connected clients where the list of entities in the `Synchronization` packet are all `staticEntities`, `dynamicEntities`, and active players in `localGame`. The `critical` field is set to `true` and `sequenceNumber` is set arbitrarily to `-1`. The `Synchronization` packet essentially inform all clients on the current state of the game board.
+* If a client connects to the server by sending the `Connect` `Packet`, first we check whether the game has started by looking at `gameStarted`. If the game has started, we close the client's connection and tell them that a game is in progress and to come back later. If a game has not started, we `pop` from `availableAssignments` to get a `playerNumber: int`. We then activate the player in the `localGame`. Next, we place into `playerDataMap` a key-value pair where the key is the client's TCP address and port pair and the value is a `ServerPlayerData` object constructed with the `portUdp` provided in the `Connect` packet, `playerNumber`, and the TCP channel of the client. Finally we send to the client a `PlayerAssignment` packet with the following parameters: `playerNumber` and `localGame.getPlayers[playerNumber]`. We then send a `Synchronization` packet over TCP to all connected clients where the list of entities in the `Synchronization` packet are all `staticEntities`, `dynamicEntities`, and active players in `localGame`. The `critical` field is set to `true` and `sequenceNumber` is set arbitrarily to `-1`. The `Synchronization` packet essentially inform all clients on the current state of the game board.
 
 * If a client disconnects, we check the `playerDataMap` for an entry associated with the disconnected client. If there is an entry found, we check if the game has started. If the game has started we deactivate the client and execute the `onPlayerElimination` method on the `localGameEventHandler` assuming this client was active in the first place. Because a player has essentially been eliminated we check for a winner by checking if the size of `playerDataMap == 1` which means there is only 1 connected client. Having 1 connected client means that client wins by default, so we call the `onWinnerDetermined` in the `localGameEventHandler`. If the game has not started, we simply take the client's player number and push it back into `availableAssignments` and deactivate the client from the `localGame`. In any event, whether the game has started or not, we end by sending a `Synchronization` packet to all clients over TCP in the same way mentioned above.
 
 * If a client has signified their readiness to start by sending a `Ready` packet, we update the `ServerPlayerData` entry. Then we check if there are more than 1 player and that everybody connected has readied themselves. If that is the case we set `gameStarted` to `true`.
 
-* If a client has sent a `UserInput` packet to update their location in the game, we find their player number through the `playerDataMap`. We now talk about the `sequenceNumber` in `UserInput` and `Synchronization`. Because UDP does not guarantee that packets arrive in order, we can use the sequence number to determine whether a newly arrive packet contains old data. Therefore if the sequence number in the `UserInput` is bigger than the `lastReceivedSequenceNumber` in the `playerDataMap` entry associated with the client, we realize that packet has new data. Realizing this, we then update the `lastReceivedSequenceNumber` to the one just received and update the `Player` associated with the client's `playerNumber` by updating the position and direction as specified in the packet.
+* If a client has sent a `UserInput` packet to update their location in the game, we find their player number through the `playerDataMap`. We now talk about the `sequenceNumber` in `UserInput` and `Synchronization`. Because UDP does not guarantee that packets arrive in order, we can use the sequence number to determine whether a newly arrive packet contains old data. Therefore if the sequence number in the `UserInput` is bigger than the `lastReceivedSequenceNumber` in the `playerDataMap` entry associated with the client, we conclude that packet has new data. Realizing this, we then update the `lastReceivedSequenceNumber` to the one just received and update the `Player` associated with the client's `playerNumber` by updating the position and direction as specified in the packet.
 
 We now make use of the event loop present in asynchronous networking libraries. We will impose that every `1ms` the `localGame` in the `ServerState` is updated via the `updateState` method with the current time in nanoseconds passed as the parameter provided that `gameStarted` is `true`. Depending on the server's hardware power, this time delay between updates can be modified. Additionally, the event loop should also send out a broadcast to all clients regarding the current state of the game every `16ms`, provided the game has started. The choice of `16ms` was chosen to maintain a 60fps refresh rate but it can be modified depending on the server's hardware power. Broadcasting the game state should be done over UDP and involves sending a `Synchronization` packet. The entities list in the packet will be all `dynamicEntities` in `localGame` and all active players. The `critical` field should be false and the sequence number should be the `sequenceNumber` which should immediately be incremented.
 
@@ -1220,7 +1229,7 @@ We now consider the `GameEventHandler` associated with `ServerState`.
 * For `onPlayerElimination`, the server does the exact same thing as `onLifeChange` but sends a `PlayerEliminated` packet instead with parameters specified by `onPlayerElimination`.
 
 ## Networking on the Client Side
-As mentioned before the `ClientLocalGame` should be created implementing the `GameScene` interface. It takes as a parameter a `GameClient` which is the instance of the `GameClient` that created the `ClientLocalGame`. The fields in this class is a `entities: HashMap<String, Entity>` which maps the `id` of an `Entity` to the corresponding `Entity`, a `lastReceivedSequenceNumber: long` which is initially set to `-1` and helps determines whether incoming UDP data is stale or recent, and a `sequenceNumber: long` which is initially set to `0` and aids the server in recognizing whether UDP data is stale or recent. The client also needs to maintain the fields `player: Player` which is the client's `Player` object on the server's `localGame`, `playerId: String` which is the ID of the `Player` object assigned to the client, and `playerAssignment: int` which is the player number of the client.
+As mentioned before the `ClientLocalGame` should be created implementing the `GameScene` interface. It takes as a parameter a `GameClient` which is the instance of the `GameClient` that created the `ClientLocalGame`. The fields in this class is a map `entities: HashMap<String, Entity>` which maps the `id` of an `Entity` to the corresponding `Entity`, a `lastReceivedSequenceNumber: long` which is initially set to `-1` and helps determines whether incoming UDP data is stale or recent, and a `sequenceNumber: long` which is initially set to `0` and aids the server in recognizing whether UDP data is stale or recent. The client also needs to maintain the fields `player: Player` which is the client's `Player` object on the server's `localGame`, `playerId: String` which is the ID of the `Player` object assigned to the client, and `playerAssignment: int` which is the player number of the client.
 
 Once again we will assume that this class is notified of all network events.
 
@@ -1228,7 +1237,7 @@ Once again we will assume that this class is notified of all network events.
 
 * If a `Synchronization` packet is received, we first need to check if it is `critical`. Critical `Synchronization` packets do in essence a "full" synchronization leaving out no data. With this in mind we should clear the `entities` map and fill it with all entities in the `Synchronization` packet except the `Entity` whose `id` matches `playerId`. We will eventually want to handle the `Player` object independently of the others which is why it is not added to `entities`. Otherwise, if the packet is not `critical` then we merely update the `entities` map with the `entities` in the `Synchronization` packet without clearly it beforehand. The idea is that noncritical `Synchronization`s merely update the entities received in a critical, full `Synchronization`.
 
-* If a `PlayerElimination` packet is received that a message should be displayed to the screen. For convenience, if the eliminated player matches `playerAssignment` the message should mentioned that the player in particular was eliminated such as "You were eliminated". Additionally, upon elimination the `player` field should be set to `null` so that it no longer is controllable nor rendered. If that match did not occur then "Player X was eliminated" would suffice where X is the player eliminated. 
+* If a `PlayerElimination` packet is received then a message should be displayed to the screen. For convenience, if the eliminated player matches `playerAssignment` the message should mentioned that the player in particular was eliminated such as "You were eliminated". Additionally, upon elimination the `player` field should be set to `null` so that it no longer is controllable nor rendered. If that match did not occur then "Player X was eliminated" would suffice where X is the player eliminated. 
 
 * If a `LivesUpdate` packet is received, then a message on the screen should flash showing the lives statistics of all active players. All of this information is present in the `LivesUpdate` packet.
 
@@ -1245,7 +1254,7 @@ The structure of what was sketched out is displayed below visually.
 ![Networking UML](document_assets/networking_uml_img.png)
 
 ## The Interface for Connecting to and Hosting a Server
-Because hosting a server would likely be done on some remote server that typically does not come with rich graphical interface capabilities, hosting a server should involve the command line where arguments are of the following form `host [hostname] [portTcp] [portUdp] [path to .map file]`. These arguments precisely match the constructor of `GameServer`. From which point `launchServer` can be called.
+Because hosting a server would likely be done on some remote server that typically does not come with rich graphical interface capabilities, hosting a server should involve the command line where arguments are of the following form: `host [hostname] [portTcp] [portUdp] [path to .map file]`. These arguments precisely match the constructor of `GameServer`. At this point `launchServer` can be called.
 
 ![Connect To Server Mockup](document_assets/connect_mockup.png)
 
