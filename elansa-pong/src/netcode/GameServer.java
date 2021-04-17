@@ -1,8 +1,6 @@
 package netcode;
 
-import game.AbstractLocalGame;
-import game.map.BouncyBalls;
-import game.map.Spin;
+import game.GameSettings;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
@@ -31,6 +29,9 @@ public class GameServer {
     private ServerState serverState;
 
     public GameServer(String hostname, int portTcp, int portUdp, File gameMap) throws IOException, ClassNotFoundException {
+        // Disable certain settings from the game
+        GameSettings.SOUND_EFFECTS_ON = false;
+
         this.hostname = hostname;
         this.portTcp = portTcp;
         this.portUdp = portUdp;

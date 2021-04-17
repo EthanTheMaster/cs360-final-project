@@ -3,14 +3,17 @@ package game;
 import engine.*;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.media.AudioClip;
 import javafx.scene.paint.Color;
 
+import java.nio.file.Paths;
 import java.util.ArrayList;
 
 public class Ball extends Entity {
 
     private CircleCollider collider;
     private Vec2d lastContactFreePosition;
+    private transient AudioClip bonkClip;
 
     public Ball(
         String name,
@@ -55,11 +58,19 @@ public class Ball extends Entity {
     public void onCollision(Entity other, Collider otherCollider) {
         setPosition(lastContactFreePosition);
         lastContactFreePosition = this.position;
+
+        if (bonkClip == null) {
+            bonkClip = new AudioClip(
+                    Paths.get(GameSettings.BALL_BONK_AUDIO).toUri().toString()
+            );
+        }
+        double volume = 1.0;
         if (otherCollider instanceof RectangleCollider) {
             RectangleCollider rectangleCollider = (RectangleCollider) otherCollider;
             Vec2d contactPoint = rectangleCollider.findClosestPoint(collider.getCenter());
             Vec2d normal = collider.getCenter().sub(contactPoint);
 
+            volume = Math.abs(this.velocity.normalize().dot(normal.normalize()));
             this.velocity = this.velocity
                     .add(
                             this.velocity.projectOnto(normal).scale(-2.0)
@@ -67,10 +78,16 @@ public class Ball extends Entity {
         } else if (otherCollider instanceof CircleCollider) {
             CircleCollider otherCircleCollider = (CircleCollider) otherCollider;
             Vec2d normal = collider.getCenter().sub(otherCircleCollider.getCenter());
+            volume = Math.abs(this.velocity.normalize().dot(normal.normalize()));
             this.velocity = this.velocity
                     .add(
                             this.velocity.projectOnto(normal).scale(-2.0)
                     );
+        }
+
+        if (GameSettings.SOUND_EFFECTS_ON) {
+            bonkClip.setVolume(volume);
+            bonkClip.play();
         }
     }
 }

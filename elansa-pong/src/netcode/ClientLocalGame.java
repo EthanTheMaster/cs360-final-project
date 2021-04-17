@@ -3,14 +3,17 @@ package netcode;
 import engine.Collider;
 import engine.Entity;
 import engine.GameScene;
+import game.GameSettings;
 import game.Player;
 import javafx.application.Platform;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.media.AudioClip;
 import netcode.packets.*;
 import netcode.state.ClientUpdateHandler;
 
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -29,6 +32,9 @@ public class ClientLocalGame implements GameScene {
     private GameClient client;
     public ClientLocalGame(GameClient client) {
         this.client = client;
+        AudioClip bell = new AudioClip(
+                Paths.get(GameSettings.BELL_AUDIO).toUri().toString()
+        );
         client.setUpdateHandlerHook(new ClientUpdateHandler() {
             @Override
             public void receivedPlayerAssignment(PlayerAssignment assignment) {
@@ -103,6 +109,9 @@ public class ClientLocalGame implements GameScene {
                 Platform.runLater(() -> {
                     client.getLivesBoard().flashMessage(livesMessage.toString());
                 });
+                if (GameSettings.SOUND_EFFECTS_ON) {
+                    bell.play();
+                }
             }
 
             @Override

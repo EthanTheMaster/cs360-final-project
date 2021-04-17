@@ -3,12 +3,16 @@ package game.ui;
 import engine.GameLoop;
 import game.AbstractLocalGame;
 import game.GameEventHandler;
+import game.GameSettings;
 import javafx.animation.AnimationTimer;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.layout.StackPane;
+import javafx.scene.media.AudioClip;
 import javafx.stage.Stage;
+
+import java.nio.file.Paths;
 
 
 public class PlayLocalGame {
@@ -26,6 +30,9 @@ public class PlayLocalGame {
 
         StackPane.setAlignment(livesBoard, Pos.CENTER);
         StackPane.setAlignment(eliminationNotification, Pos.TOP_CENTER);
+        AudioClip bell = new AudioClip(
+                Paths.get(GameSettings.BELL_AUDIO).toUri().toString()
+        );
         game.setGameEventHandler(new GameEventHandler() {
             @Override
             public void onWinnerDetermined(int winner) {
@@ -45,6 +52,9 @@ public class PlayLocalGame {
                     if (activePlayers[i-1]) {
                         livesMessage.append(String.format("Player %d's Lives: %d\n", i, newLives[i-1]));
                     }
+                }
+                if (GameSettings.SOUND_EFFECTS_ON) {
+                    bell.play();
                 }
                 livesBoard.flashMessage(livesMessage.toString());
             }
