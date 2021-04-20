@@ -249,7 +249,7 @@ The interface should extend `Serialiable` so that it can be converted into bytes
 
 Notice that we are making use of `Vec2d` to describe a physical property like position. In any event, the method of particular interest is `collide` which every class implementing `Collider` must create. This method is used to check collision between two `Collider` objects.
 
-The first `Collider` we will create will be a `RectangleCollider`. A `RectangleCollider` is defined by the position of its top-left corner which we will call the `origin: Vec2d`. The collider is also defined by the following `double`s: `width`, `height`, and `angle`. Note that `angle` should be in radians and it describes how much the rectangle is rotated about its origin. See the figure below for an illustration. **From this point on, we will that the positive $y$ direction is down, similar to the screen space coordinate system.** In the image $(x, y)$ is `origin` and $\theta$ is `angle`.
+The first `Collider` we will create will be a `RectangleCollider`. A `RectangleCollider` is defined by the position of its top-left corner which we will call the `origin: Vec2d`. The collider is also defined by the following `double`s: `width`, `height`, and `angle`. Note that `angle` should be in radians and it describes how much the rectangle is rotated about its origin. See the figure below for an illustration. **From this point on, we will assume that the positive $y$ direction is down, similar to the screen space coordinate system.** In the image $(x, y)$ is `origin` and $\theta$ is `angle`.
 
 ![Rectangle Collider](document_assets/rect_def.png)
 
@@ -750,7 +750,7 @@ public void setDirection(int direction) {
     this.velocity = positiveDirection.scale(direction * moveSpeed);
 }
 ```
-Because we might want an automated player in the future. We will create a method `setDirectionAutomatically` which takes a list of `Ball`s called `balls: ArrayList<Ball>` and set the direction so that the player can bounce the closest ball. Let $\mathbf{u}$ be the `positiveDirection` vector, $\mathbf{b}_x$ be the position of the closest `Ball` in `balls`, $\mathbf{x}$ be the `Player`'s center, and $\mathbf{v} = \mathbf{b}_x - \mathbf{x}$. We can compute $\mathbf{x}$ by averaging the vertices of the `Player`'s `RectangleCollider`. We will also define player's paddle span to be $S = \max{\left({\mathtt{collider.width}, \mathtt{collider.height}}\right)}$.
+Because we might want an automated player in the future. We will create a method `setDirectionAutomatically` which takes a list of `Ball`s called `balls: ArrayList<Ball>` and set the direction so that the player can bounce the closest ball. What `Ball` is will be explained in the next section. Let $\mathbf{u}$ be the `positiveDirection` vector, $\mathbf{b}_x$ be the position of the closest `Ball` in `balls`, $\mathbf{x}$ be the `Player`'s center, and $\mathbf{v} = \mathbf{b}_x - \mathbf{x}$. We can compute $\mathbf{x}$ by averaging the vertices of the `Player`'s `RectangleCollider`. We will also define player's paddle span to be $S = \max{\left({\mathtt{collider.width}, \mathtt{collider.height}}\right)}$.
 
 ![Automated Player Movement](document_assets/automated_player.png)
 
@@ -893,6 +893,8 @@ public void onCollision(Entity other, Collider otherCollider) {
     }
 }
 ```
+A playful addition to this collision code would be playing an audio clip of a "bounce" noise. Every time a collision is detected, a "bounce" noise is played, but how that is implemented is omitted. Additionally the volume of the audio clip can be modified depending on how directly the `Ball` strikes the surface which can be based on the $\cos{\theta}$ term in $\mathbf{n} \cdot \mathbf{v}$ where $\mathbf{n}$ is the normal vector of the surface and $\mathbf{v}$ is the velocity of the `Ball`. Taking the absolute value of the $\cos{\theta}$ term yields a quantity in $[0, 1]$ which can be directly mapped to a volume setting ranging from 0% to 100%.
+
 Diagrammatically what we have developed in this section is shown below
 
 ![Entity UML Diagram](document_assets/entity_uml_img.png)
