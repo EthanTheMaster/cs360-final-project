@@ -134,10 +134,20 @@ public class GameClient {
 
         Scene scene = new Scene(pane);
 
+        stage.setMinWidth(500);
+        stage.widthProperty().addListener((observableValue, number, t1) -> {
+            // Rerender the scene when the screen is resized
+            game.render(canvas);
+        });
+        stage.minHeightProperty().bind(stage.widthProperty());
+        stage.maxHeightProperty().bind(stage.widthProperty());
+        canvas.widthProperty().bind(pane.widthProperty());
+        canvas.heightProperty().bind(pane.heightProperty());
+        stage.setResizable(true);
+
         stage.setOnCloseRequest(windowEvent -> {
             close();
         });
-        stage.setResizable(false);
         stage.setTitle("Networked Game");
         stage.setScene(scene);
         stage.show();

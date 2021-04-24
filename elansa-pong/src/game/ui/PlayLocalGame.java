@@ -5,6 +5,8 @@ import game.AbstractLocalGame;
 import game.GameEventHandler;
 import game.GameSettings;
 import javafx.animation.AnimationTimer;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.canvas.Canvas;
@@ -60,9 +62,20 @@ public class PlayLocalGame {
             }
         });
         Scene scene = new Scene(pane);
+
+        stage.setMinWidth(500);
+        stage.widthProperty().addListener((observableValue, number, t1) -> {
+            // Rerender the scene when the screen is resized
+            game.render(canvas);
+        });
+        stage.minHeightProperty().bind(stage.widthProperty());
+        stage.maxHeightProperty().bind(stage.widthProperty());
+        canvas.widthProperty().bind(pane.widthProperty());
+        canvas.heightProperty().bind(pane.heightProperty());
+
+        stage.setResizable(true);
         stage.setTitle("Local Game");
         stage.setScene(scene);
-        stage.setResizable(false);
         stage.show();
     }
 }
