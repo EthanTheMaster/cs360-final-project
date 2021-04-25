@@ -1,10 +1,12 @@
 package netcode.packets;
 
 import game.AbstractLocalGame;
+import game.GameSettings;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.socket.DatagramPacket;
+import org.apache.commons.io.serialization.ValidatingObjectInputStream;
 
 import java.io.*;
 import java.net.InetSocketAddress;
@@ -34,9 +36,11 @@ public class Serializer {
 
     public static Object fromBytes(byte[] bytes) {
         ByteArrayInputStream inputStream = new ByteArrayInputStream(bytes);
-        ObjectInputStream input = null;
+        ValidatingObjectInputStream input = null;
         try {
-            input = new ObjectInputStream(inputStream);
+            input = new ValidatingObjectInputStream(inputStream);
+            input.accept(GameSettings.SERIALIZABLE_WHITELIST);
+
             return input.readObject();
         } catch (Exception e) {
             e.printStackTrace();

@@ -26,6 +26,10 @@ public class PacketDecoder extends ByteToMessageDecoder {
         // We can deserialize the packet
         byte[] bytes = new byte[dataLength];
         byteBuf.readBytes(bytes);
-        list.add(Serializer.fromBytes(bytes));
+        Object deserializedObj = Serializer.fromBytes(bytes);
+        // Do not attempt to decode
+        if (deserializedObj != null) {
+            list.add(deserializedObj);
+        }
     }
 }
