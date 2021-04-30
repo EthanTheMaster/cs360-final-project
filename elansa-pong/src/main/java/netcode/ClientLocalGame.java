@@ -67,6 +67,13 @@ public class ClientLocalGame implements GameScene {
                         // Player may be null if player has been eliminated and is now a spectator
                         if (!entity.getId().equals(playerId)) {
                             entities.put(entity.getId(), entity);
+                        } else {
+                            // Received a critical synchronization so make sure to synchronize the player's data
+                            if (player != null && entity instanceof Player) {
+                                player.setPosition(entity.getPosition());
+                                player.setVelocity(entity.getVelocity());
+                                player.setDirection(((Player) entity).getDirection());
+                            }
                         }
                     }
                 } else {

@@ -10,7 +10,7 @@ import javafx.scene.paint.Color;
 
 import java.util.ArrayList;
 
-public class Player extends Entity {
+public class Player extends Entity implements Cloneable {
     // The direction the player is moving in. Direction should be in {-1, 0, 1}
     private int direction;
     private final Vec2d positiveDirection;
@@ -159,5 +159,19 @@ public class Player extends Entity {
 
     public void setDirectionKeyNegative(int directionKeyNegative) {
         this.directionKeyNegative = directionKeyNegative;
+    }
+
+    @Override
+    public Object clone() {
+        return new Player(
+                this.id,
+                this.position,
+                this.collider.getWidth(),
+                this.collider.getHeight(),
+                this.positiveDirection,
+                this.directionKeyPositive,
+                this.directionKeyNegative,
+                this.moveSpeed
+        );
     }
 }

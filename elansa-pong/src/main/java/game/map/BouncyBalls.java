@@ -302,8 +302,14 @@ public class BouncyBalls extends AbstractLocalGame {
     };
 
     public BouncyBalls() {
-        this.players = initialPlayers.clone();
+        resetPlayers();
         dynamicEntities.add(ball);
+    }
+
+    private void resetPlayers() {
+        for (int i = 0; i < players.length; i++) {
+            players[i] = (Player) initialPlayers[i].clone();
+        }
     }
 
     private int determineWinner() {
@@ -324,6 +330,7 @@ public class BouncyBalls extends AbstractLocalGame {
 
     @Override
     protected void deductLife(int playerNumber) {
+        resetGame();
         lives[playerNumber] -= 1;
         if (lives[playerNumber] == 0) {
             deactivatePlayer(playerNumber);
@@ -336,7 +343,6 @@ public class BouncyBalls extends AbstractLocalGame {
         if (winner != -1) {
             gameEventHandler.onWinnerDetermined(winner);
         }
-        resetGame();
     }
 
     @Override
@@ -399,7 +405,7 @@ public class BouncyBalls extends AbstractLocalGame {
 
     @Override
     public void resetGame() {
-        this.players = initialPlayers.clone();
+        resetPlayers();
         ball.setPosition(new Vec2d(0.5, 0.5));
         ball.setVelocity(new Vec2d(0.0, 0.0));
         ballThrowTime = lastRecordedTime + resetTime;
