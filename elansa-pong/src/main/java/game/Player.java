@@ -163,15 +163,28 @@ public class Player extends Entity implements Cloneable {
 
     @Override
     public Object clone() {
-        return new Player(
-                this.id,
-                this.position,
-                this.collider.getWidth(),
-                this.collider.getHeight(),
-                this.positiveDirection,
-                this.directionKeyPositive,
-                this.directionKeyNegative,
-                this.moveSpeed
-        );
+//        Player res = new Player(
+//                this.id,
+//                this.position,
+//                this.collider.getWidth(),
+//                this.collider.getHeight(),
+//                this.positiveDirection,
+//                this.directionKeyPositive,
+//                this.directionKeyNegative,
+//                this.moveSpeed
+//        );
+//        res.setDirection(this.direction);
+//        res.setVelocity(this.velocity);
+//        return res;
+        Player res = null;
+        try {
+            res = (Player) super.clone();
+            res.setPosition(this.position);
+            res.setVelocity(this.velocity);
+            res.setDirection(this.direction);
+        } catch (CloneNotSupportedException e) {
+            e.printStackTrace();
+        }
+        return res;
     }
 }
