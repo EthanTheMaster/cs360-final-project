@@ -28,6 +28,15 @@ public class GameServer {
 
     private ServerState serverState;
 
+    /**
+     * Creates a game server that hosts a networked game
+     * @param hostname the address to bind onto
+     * @param portTcp the port to bind to for reliable communications with clients
+     * @param portUdp the port to bind to for fast but unreliable communications with clients
+     * @param gameMap the game map to host
+     * @throws IOException
+     * @throws ClassNotFoundException
+     */
     public GameServer(String hostname, int portTcp, int portUdp, File gameMap) throws IOException, ClassNotFoundException {
         // Disable certain settings from the game
         GameSettings.SOUND_EFFECTS_ON = false;
@@ -39,6 +48,10 @@ public class GameServer {
         serverState = new ServerState(gameMap);
     }
 
+    /**
+     * Attaches the server to the network
+     * @throws InterruptedException
+     */
     public void launchServer() throws InterruptedException {
         GameServer gameServer = this;
 

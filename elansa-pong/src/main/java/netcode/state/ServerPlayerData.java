@@ -2,6 +2,9 @@ package netcode.state;
 
 import io.netty.channel.ChannelHandlerContext;
 
+/**
+ * Holds relevant information the server needs to maintain for each connected client
+ */
 public class ServerPlayerData {
     private boolean isReady = false;
     private int udpPort;

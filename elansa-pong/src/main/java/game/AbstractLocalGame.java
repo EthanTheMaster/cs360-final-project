@@ -43,10 +43,33 @@ public abstract class AbstractLocalGame implements GameScene {
             0.0
     );
 
+    /**
+     * Implements the life deduction mechanism
+     * @param playerNumber the player to deduct a life from
+     */
     protected abstract void deductLife(int playerNumber);
+
+    /**
+     * Updates the entities list after entities have been deleted or added
+     */
     protected abstract void updateEntitiesList();
+
+    /**
+     * Updates the game state when a player is determined to be alive/is participating in the game
+     * @param playerNumber the player to be declared as an active participant of the game
+     * @param automated specifies whether the player should be controlled by the computer
+     */
     public abstract void activatePlayer(int playerNumber, boolean automated);
+
+    /**
+     * Updates the game state when a player is eliminated from the game
+     * @param playerNumber the player eliminated
+     */
     public abstract void deactivatePlayer(int playerNumber);
+
+    /**
+     * Resets the game particularly after a life has been lost
+     */
     public abstract void resetGame();
 
     public void setGameEventHandler(GameEventHandler gameEventHandler) {

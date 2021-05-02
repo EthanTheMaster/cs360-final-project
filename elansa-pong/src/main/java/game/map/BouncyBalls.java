@@ -306,12 +306,19 @@ public class BouncyBalls extends AbstractLocalGame {
         dynamicEntities.add(ball);
     }
 
+    /**
+     * Places players back into their starting positions
+     */
     private void resetPlayers() {
         for (int i = 0; i < players.length; i++) {
             players[i] = (Player) initialPlayers[i].clone();
         }
     }
 
+    /**
+     * Determines who is winner of the game
+     * @return -1 if no winner has been detected but returns a number in [0, 3] for the winner
+     */
     private int determineWinner() {
         // Check if there is one active player
         int res = -1;
@@ -360,6 +367,11 @@ public class BouncyBalls extends AbstractLocalGame {
         }
     }
 
+    /**
+     * Adjusts the board based on which players are active.
+     * Walls are placed for non-active players and blocks are placed in corners
+     * shared by two adjacent, active players
+     */
     private void updatePlayerAreas() {
         staticEntities = new ArrayList<>();
         staticEntities.add(bouncyBalls);

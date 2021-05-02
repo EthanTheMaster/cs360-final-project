@@ -18,6 +18,11 @@ import java.nio.file.Paths;
 
 
 public class PlayLocalGame {
+    /**
+     * Updates the stage to display a local game
+     * @param stage the stage that should hold the game
+     * @param game the game to be displayed
+     */
     public static void displayGame(Stage stage, AbstractLocalGame game) {
         Canvas canvas = game.generateRenderableComponent(500, 500);
         AnimationTimer timer = new GameLoop(game, canvas);

@@ -15,6 +15,12 @@ public class Ball extends Entity {
     private Vec2d lastContactFreePosition;
     private transient AudioClip bonkClip;
 
+    /**
+     * Creates a ball
+     * @param name the name of the ball
+     * @param centerPosition the initial position of the ball's center
+     * @param radius the ball's radius
+     */
     public Ball(
         String name,
         Vec2d centerPosition,

@@ -35,6 +35,7 @@ public class ClientLocalGame implements GameScene {
         AudioClip bell = new AudioClip(
                 Paths.get(GameSettings.BELL_AUDIO).toUri().toString()
         );
+        // Handles events received from the game client
         client.setUpdateHandlerHook(new ClientUpdateHandler() {
             @Override
             public void receivedPlayerAssignment(PlayerAssignment assignment) {

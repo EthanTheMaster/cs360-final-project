@@ -6,6 +6,13 @@ public class RectangleCollider implements Collider {
     private double height;
     private double angle;
 
+    /**
+     * Creates a possibly rotated rectangle collider
+     * @param origin the location of the top-left corner prior to the rotation
+     * @param width the width of the rectangle
+     * @param height the height of the rectangle
+     * @param angle the angle the horizontal edge of the rectangle makes with the horizontal axis
+     */
     public RectangleCollider(Vec2d origin, double width, double height, double angle) {
         this.origin = origin;
         this.width = width;

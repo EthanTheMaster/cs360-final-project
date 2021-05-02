@@ -39,6 +39,12 @@ public class GameClient {
 
     private GameLoop gameLoop;
 
+    /**
+     * Creates a game client connected to a server hosting a remote game
+     * @param serverIp  the server's network address
+     * @param serverPortTcp the server's open TCP port associated with the hosted game
+     * @param serverPortUdp the server's open UDP port associated with the hosted game
+     */
     public GameClient(String serverIp, int serverPortTcp, int serverPortUdp) {
         this.serverIp = serverIp;
         this.serverPortTcp = serverPortTcp;
@@ -98,6 +104,9 @@ public class GameClient {
         }
     }
 
+    /**
+     * Cleans up the client's resources
+     */
     public void close() {
         if (udpChannel != null) {
             udpChannel.close();

@@ -4,6 +4,11 @@ public class CircleCollider implements Collider {
     private Vec2d center;
     private double radius;
 
+    /**
+     * Creates a circle collider with a given center and radius
+     * @param center the center of the circle
+     * @param radius the radius of the circle
+     */
     public CircleCollider(Vec2d center, double radius) {
         this.center = center;
         this.radius = radius;

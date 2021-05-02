@@ -27,6 +27,11 @@ public class CreateLocalGameMenu {
     static File mapChosen = null;
 
     static Stage mainStage;
+
+    /**
+     * Updates the stage to show the local game configuration menu
+     * @param stage the stage that should hold the menu
+     */
     public static void showMenu(Stage stage) {
         mainStage = stage;
 
@@ -85,6 +90,11 @@ public class CreateLocalGameMenu {
         stage.show();
     }
 
+    /**
+     * Displays an alert warning the user of an error
+     * @param reason the reason for the error
+     * @param errorMessage a description of the error and possibly a fix
+     */
     private static void displayError(String reason, String errorMessage) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle(reason);
@@ -92,6 +102,10 @@ public class CreateLocalGameMenu {
         alert.showAndWait();
     }
 
+    /**
+     * Invoked when the user starts the game
+     * @param mouseEvent a description of how the user clicked the start button
+     */
     private static void onGameStart(MouseEvent mouseEvent) {
         if (mapChosen == null) {
             displayError("No Map Selected", "Please select a map.");

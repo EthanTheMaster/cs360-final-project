@@ -8,6 +8,10 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 public class MainMenu {
+    /**
+     * Updates the stage to show the main menu
+     * @param stage the stage that should hold the menu
+     */
     public static void showMenu(Stage stage) {
         VBox vBox = new VBox();
         Button createLocalGame = new Button("Create Local Game");

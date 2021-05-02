@@ -10,6 +10,10 @@ import javafx.stage.Stage;
 import netcode.GameClient;
 
 public class ConnectServer {
+    /**
+     * Updates the stage to show the connection menu
+     * @param stage the stage that should hold the menu
+     */
     public static void showMenu(Stage stage) {
         GridPane gridPane = new GridPane();
         Label serverIp = new Label("Server IP");

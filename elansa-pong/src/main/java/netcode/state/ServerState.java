@@ -58,12 +58,22 @@ public class ServerState {
         }
     };
 
+    /**
+     * Generates the initially server state
+     * @param gameMap the game map the server should host
+     * @throws IOException
+     * @throws ClassNotFoundException
+     */
     public ServerState(File gameMap) throws IOException, ClassNotFoundException {
         this.gameMap = gameMap;
         localGame = Serializer.readGameMapFromFile(gameMap);
         localGame.setGameEventHandler(localGameEventHandler);
     }
 
+    /**
+     * Helper method to broadcast a game over message to the client
+     * @param message the message for the game being over
+     */
     private void sendGameOver(String message) {
         for (ServerPlayerData playerData : playerDataMap.values()) {
             playerData.getTcpCtx().writeAndFlush(new GameOver(message));
@@ -71,6 +81,9 @@ public class ServerState {
         resetServer();
     }
 
+    /**
+     * Helper method to reset the server for another game to start
+     */
     private void resetServer() {
         System.out.println("Restarting server ...");
         gameStarted = false;
@@ -105,12 +118,19 @@ public class ServerState {
         }
     }
 
+    /**
+     * Progresses the local game that server maintains
+     */
     public void updateLocalGame() {
         if (gameStarted) {
             localGame.updateState(System.nanoTime());
         }
     }
 
+    /**
+     * Broadcasts the game over UDP
+     * @param udpChannel the server's udp channel
+     */
     public void broadcastGameState(Channel udpChannel) {
         if (gameStarted) {
             ArrayList<Entity>[] chunks = new ArrayList[CHUNK_SIZE];
@@ -225,6 +245,11 @@ public class ServerState {
         }
     }
 
+    /**
+     * Invoked when a client sends an update on its movement
+     * @param sender the client's network address
+     * @param packet the update encoding the client's movement
+     */
     public void onPlayerInput(InetSocketAddress sender, PlayerInput packet) {
         if (gameStarted) {
             for (SocketAddress tcpSocket : playerDataMap.keySet()) {

@@ -26,6 +26,17 @@ public class Player extends Entity implements Cloneable {
 
     private Vec2d lastContactFreePosition;
 
+    /**
+     * Creates a player represented as a rectangle
+     * @param name the name of the player
+     * @param position the position of the player's top-left corner
+     * @param width the width of the player
+     * @param height the height of the player
+     * @param positiveDirection a unit vector pointing in the direction the player should move when their direction is positive
+     * @param directionKeyPositive the key on the keyboard to make the player move in the positive direction
+     * @param directionKeyNegative the key on the keyboard to make the player move in the negative direction
+     * @param moveSpeed the velocity of the player in board units per second
+     */
     public Player(
             String name,
             Vec2d position,
@@ -84,6 +95,10 @@ public class Player extends Entity implements Cloneable {
         collider.setPosition(position);
     }
 
+    /**
+     * Computes the direction of the player should move in based on the locations of a collection of balls
+     * @param balls a collection of balls
+     */
     public void setDirectionAutomatically(ArrayList<Ball> balls) {
         Vec2d[] verticesAndBasis = collider.computeVerticesAndBasis();
         Vec2d paddleCenter = verticesAndBasis[0]
@@ -110,6 +125,10 @@ public class Player extends Entity implements Cloneable {
             });
     }
 
+    /**
+     * Sets the direction based on the key pressed on the keyboard
+     * @param keyCode the key code of the key pressed on the keyboard
+     */
     public void setDirectionKeyPress(int keyCode) {
         if (keyCode == directionKeyPositive) {
             setDirection(1);
@@ -118,6 +137,10 @@ public class Player extends Entity implements Cloneable {
         }
     }
 
+    /**
+     * Sets the direction based on the key released on the keyboard
+     * @param keyCode the key code of the key pressed on the keyboard
+     */
     public void setDirectionKeyRelease(int keyCode) {
         // If the key released matches the direction being moved in, stay still
         if (

@@ -13,6 +13,14 @@ public class Obstacle extends Entity {
     private boolean isVisible;
     private CollisionEventHandler trigger;
 
+    /**
+     * Creates a entity from a collection of Colliders.
+     * @param name the name of the obstacle
+     * @param hitZones an array of Colliders forming the obstacle
+     * @param colorRgb the color of the obstacle
+     * @param isVisible specifies the visibility of the obstacle
+     * @param trigger the handler that handles collision events and may be null
+     */
     public Obstacle(String name, Collider[] hitZones, int[] colorRgb, boolean isVisible, CollisionEventHandler trigger) {
         this.id = name;
         this.position = new Vec2d(0, 0);
